@@ -15,6 +15,21 @@ const PX_PER_POINT = 3;
 export function LineGraph({ data }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
 
+  return (
+    <svg ref={ref} className="size-full">
+      {width > 0 && (
+        <LinePlot data={data} width={width} height={height}></LinePlot>
+      )}
+    </svg>
+  );
+}
+
+interface LinePlotProps {
+  data: Point[];
+  width: number;
+  height: number;
+}
+export function LinePlot({ data, width, height }: LinePlotProps) {
   const [yMin = 0, yMax = 0] = useMemo(() => extent(data, (d) => d.y), [data]);
   const [xMin = 0, xMax = 0] = useMemo(() => extent(data, (d) => d.x), [data]);
 
@@ -30,13 +45,13 @@ export function LineGraph({ data }: LineGraphProps) {
   )(displayedData);
 
   return (
-    <svg ref={ref} className="size-full">
+    <>
       {pathD && (
         <path d={pathD} className="fill-none stroke-black stroke-1"></path>
       )}
       {displayedData.map((d) => (
         <circle key={d.x} cx={xScale(d.x)} cy={yScale(d.y)} r={3}></circle>
       ))}
-    </svg>
+    </>
   );
 }
