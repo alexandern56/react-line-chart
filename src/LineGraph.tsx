@@ -14,17 +14,8 @@ interface LineGraphProps {
 export default function LineGraph({ data }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
 
-  const [yMin, yMax] = extent(data, (d) => d.x);
-  const [xMin, xMax] = extent(data, (d) => d.y);
-
-  if (
-    xMin === undefined ||
-    xMax === undefined ||
-    yMin === undefined ||
-    yMax === undefined
-  ) {
-    return <svg ref={ref} className="size-full" />;
-  }
+  const [yMin = 0, yMax = 0] = extent(data, (d) => d.x);
+  const [xMin = 0, xMax = 0] = extent(data, (d) => d.y);
 
   const yScale = scaleLinear().domain([yMin, yMax]).range([height, 0]);
   const xScale = scaleUtc().domain([xMin, xMax]).range([0, width]);
