@@ -1,6 +1,7 @@
 import { useElementSize } from "./useElementSize";
 import { scaleLinear, scaleUtc } from "d3-scale";
 import { extent } from "d3-array";
+import { line } from "d3-shape";
 
 type Point = {
   x: number;
@@ -20,5 +21,16 @@ export default function LineGraph({ data }: LineGraphProps) {
   const yScale = scaleLinear().domain([yMin, yMax]).range([height, 0]);
   const xScale = scaleUtc().domain([xMin, xMax]).range([0, width]);
 
-  return <svg ref={ref} className="size-full border border-red-500"></svg>;
+  const pathD = line<Point>(
+    (d) => xScale(d.x),
+    (d) => yScale(d.y),
+  )(data);
+
+  return (
+    <svg ref={ref} className="size-full">
+      {pathD && (
+        <path d={pathD} className="fill-none stroke-black stroke-1"></path>
+      )}
+    </svg>
+  );
 }
