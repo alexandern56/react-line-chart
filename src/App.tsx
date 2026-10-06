@@ -15,7 +15,7 @@ const DATA = [
 function App() {
   return (
     <main className="p-10">
-      <div id="wrapper" className="h-50 w-100 border">
+      <div id="wrapper" className="h-50 border">
         <LineGraph data={DATA}></LineGraph>
       </div>
     </main>
