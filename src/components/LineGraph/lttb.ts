@@ -1,4 +1,14 @@
 import { type Point } from "./types";
+
+/**
+ * Largest-Triangle-Three-Buckets (LTTB)
+ *
+ * Algorithm: Sveinn Steinarsson, "Downsampling Time Series for Visual Representation"
+ *
+ * Adapted from the reference implementation:
+ * https://github.com/sveinn-steinarsson/flot-downsample/blob/master/jquery.flot.downsample.js
+ * Copyright (c) 2013 Sveinn Steinarsson. MIT License.
+ */
 export function lttb(points: Point[], threshold: number): Point[] {
   const n = points.length;
   if (threshold >= n || threshold < 3) return points.slice();
