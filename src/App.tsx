@@ -1,4 +1,4 @@
-import { LineGraph } from "./components/LineGraph";
+import LineChart from "./components/LineChart";
 import { LineGraphBasic } from "./components/LineGraphBasic.tsx";
 import { generateData } from "./generateData";
 
@@ -13,7 +13,7 @@ function App() {
 
       <h2>Normal</h2>
       <div className="h-50 border">
-        <LineGraph data={DATA}></LineGraph>
+        <LineChart data={DATA}></LineChart>
       </div>
     </main>
   );
