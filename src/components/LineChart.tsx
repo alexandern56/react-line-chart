@@ -1,15 +1,14 @@
 import { LineGraph } from "./LineGraph";
 import type { Point, ChartRange } from "../types/chart";
-import { CHART_RANGES, RANGE_MIN_POINTS } from "../constants/chart";
+import { CHART_RANGES } from "../constants/chart";
+import { isRangeAvailable } from "../utils/chart";
 
 import { useId, useState } from "react";
 
 export function LineChart({ data }: { data: Point[] }) {
-  const isAvailable = (r: ChartRange) => data.length >= RANGE_MIN_POINTS[r];
-
   const uid = useId();
   const [preferredRange, setPreferredRange] = useState<ChartRange>("1M");
-  const range = isAvailable(preferredRange) ? preferredRange : "All";
+  const range = isRangeAvailable(preferredRange, data) ? preferredRange : "All";
 
   return (
     <>
@@ -19,7 +18,7 @@ export function LineChart({ data }: { data: Point[] }) {
           <label key={r}>
             {r}
             <input
-              disabled={!isAvailable(r)}
+              disabled={!isRangeAvailable(r, data)}
               name={`range-${uid}`}
               checked={range === r}
               type="radio"
