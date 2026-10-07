@@ -1,4 +1,4 @@
-import { type Point } from "./components/LineGraph/types";
+import { type Point } from "./components/LineGraphBasic";
 
 const START = Date.UTC(2026, 0, 1);
 const STEP_MS = 60 * 60 * 1000;

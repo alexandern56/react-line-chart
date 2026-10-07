@@ -6,13 +6,13 @@ import { type Point } from "./types";
 import { lttb } from "./lttb";
 import { useMemo } from "react";
 
-interface LineGraphProps {
+interface LineGraphBasicProps {
   data: Point[];
 }
 
 const PX_PER_POINT = 3;
 
-export function LineGraph({ data }: LineGraphProps) {
+export function LineGraphBasic({ data }: LineGraphBasicProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
 
   return (
