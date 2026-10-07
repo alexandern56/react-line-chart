@@ -1,7 +1,7 @@
 import { LineGraph } from "./LineGraph";
 import type { Point, ChartRange } from "../types/chart";
 import { CHART_RANGES } from "../constants/chart";
-import { isRangeAvailable } from "../utils/chart";
+import { getRangeDomain, isRangeAvailable } from "../utils/chart";
 
 import { useId, useState } from "react";
 
@@ -9,6 +9,8 @@ export function LineChart({ data }: { data: Point[] }) {
   const uid = useId();
   const [preferredRange, setPreferredRange] = useState<ChartRange>("1M");
   const range = isRangeAvailable(preferredRange, data) ? preferredRange : "All";
+
+  const xDomain = getRangeDomain(range, data);
 
   return (
     <>
@@ -27,7 +29,7 @@ export function LineChart({ data }: { data: Point[] }) {
           </label>
         ))}
       </fieldset>
-      <LineGraph data={data}></LineGraph>
+      <LineGraph data={data} xDomain={xDomain}></LineGraph>
     </>
   );
 }
