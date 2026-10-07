@@ -1,18 +1,18 @@
-import { useElementSize } from "./useElementSize";
+import { useElementSize } from "../hooks/useElementSize";
 import { scaleLinear, scaleUtc } from "d3-scale";
 import { extent } from "d3-array";
 import { line } from "d3-shape";
-import { type Point } from "./types";
-import { lttb } from "./lttb";
+import { type Point } from "../types/chart";
+import { lttb } from "../utils/lttb";
 import { useMemo } from "react";
 
-interface LineGraphBasicProps {
+interface LineGraphProps {
   data: Point[];
 }
 
 const PX_PER_POINT = 3;
 
-export function LineGraphBasic({ data }: LineGraphBasicProps) {
+export function LineGraph({ data }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
 
   return (
@@ -29,6 +29,7 @@ interface LinePlotProps {
   width: number;
   height: number;
 }
+
 export function LinePlot({ data, width, height }: LinePlotProps) {
   const [yMin = 0, yMax = 0] = useMemo(() => extent(data, (d) => d.y), [data]);
   const [xMin = 0, xMax = 0] = useMemo(() => extent(data, (d) => d.x), [data]);
