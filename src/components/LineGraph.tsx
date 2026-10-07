@@ -48,7 +48,7 @@ interface LinePlotProps {
 const bisectX = bisector<Point, number>((d) => d.x);
 const ZOOM_TRANSITION = {
   duration: 0.8,
-  ease: [0.65, 0, 0.35, 1], // easeInOutCubic, как cubicInOut в Ecosystem Stats
+  ease: [0.65, 0, 0.35, 1],
 } satisfies ValueAnimationTransition;
 
 function sliceByDomain(data: Point[], xMin: number, xMax: number) {
