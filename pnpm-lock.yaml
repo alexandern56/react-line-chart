@@ -20,6 +20,9 @@ importers:
       d3-shape:
         specifier: ^3.2.0
         version: 3.2.0
+      d3-time:
+        specifier: ^3.1.0
+        version: 3.1.0
       react:
         specifier: ^19.2.8
         version: 19.3.0
@@ -42,6 +45,9 @@ importers:
       '@types/d3-shape':
         specifier: ^3.2.0
         version: 3.2.0
+      '@types/d3-time':
+        specifier: ^3.0.4
+        version: 3.0.4
       '@types/node':
         specifier: ^24.13.3
         version: 24.19.1
