@@ -29,18 +29,21 @@ interface LineGraphProps {
 
 const PX_PER_POINT = 3;
 
+const MARGIN = { top: 15, bottom: 35 };
 export function LineGraph({ data, xDomain }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
 
   return (
     <svg ref={ref} className="size-full">
       {width > 0 && (
-        <LinePlot
-          data={data}
-          width={width}
-          height={height}
-          xDomain={xDomain}
-        ></LinePlot>
+        <g transform={`translate(0,${MARGIN.top})`}>
+          <LinePlot
+            data={data}
+            width={width}
+            height={height - MARGIN.top - MARGIN.bottom}
+            xDomain={xDomain}
+          ></LinePlot>
+        </g>
       )}
     </svg>
   );
