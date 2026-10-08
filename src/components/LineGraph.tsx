@@ -1,7 +1,7 @@
 import { useElementSize } from "../hooks/useElementSize";
 import { scaleLinear, scaleUtc } from "d3-scale";
 import { extent, bisector } from "d3-array";
-import { line } from "d3-shape";
+import { curveMonotoneX, line } from "d3-shape";
 import { type Point } from "../types/chart";
 import { lttb } from "../utils/lttb";
 import { getMorphEndpoints, lerpPoints } from "../utils/morph";
@@ -97,7 +97,7 @@ function getRenderedPoints(
 const linePath = line<Point>(
   (d) => d.x,
   (d) => d.y,
-);
+).curve(curveMonotoneX);
 
 function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
   const [targetXMin, targetXMax] = xDomain;
