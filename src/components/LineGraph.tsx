@@ -206,26 +206,34 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
     <>
       <motion.path
         d={pathD}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: data.length > 0 ? 1 : 0 }}
+        transition={TRANSITION}
         className="fill-none stroke-black stroke-1"
       ></motion.path>
       <AnimatePresence>
-        <motion.g
-          key={`${targetYMin}:${targetYMax}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: 0.4, delay: 0.6 } }}
-          exit={{ opacity: 0, transition: { duration: 0.4 } }}
-        >
-          {yTicks.map((tick) => (
-            <text
-              key={tick}
-              x={15}
-              y={targetYScale(tick)}
-              dominantBaseline="middle"
-            >
-              {tick}
-            </text>
-          ))}
-        </motion.g>
+        {data.length > 0 && (
+          <motion.g
+            key={`${targetYMin}:${targetYMax}`}
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: 1,
+              transition: { duration: 0.4, delay: reduceMotion ? 0 : 0.6 },
+            }}
+            exit={{ opacity: 0, transition: { duration: 0.4 } }}
+          >
+            {yTicks.map((tick) => (
+              <text
+                key={tick}
+                x={15}
+                y={targetYScale(tick)}
+                dominantBaseline="middle"
+              >
+                {tick}
+              </text>
+            ))}
+          </motion.g>
+        )}
       </AnimatePresence>
     </>
   );
