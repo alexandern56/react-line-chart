@@ -35,7 +35,7 @@ export function LineGraph({ data, xDomain }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
 
   return (
-    <svg ref={ref} className="size-full">
+    <svg ref={ref} className="size-full min-h-68.75">
       {width > 0 && (
         <g transform={`translate(0,${MARGIN.top})`}>
           <LinePlot
