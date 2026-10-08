@@ -28,6 +28,7 @@ interface LineGraphProps {
 }
 
 const PX_PER_POINT = 3;
+const PX_PER_Y_TICK = 50;
 
 const MARGIN = { top: 15, bottom: 35 };
 export function LineGraph({ data, xDomain }: LineGraphProps) {
@@ -119,7 +120,9 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
     () => scaleLinear().domain([targetYMin, targetYMax]).range([height, 0]),
     [targetYMin, targetYMax, height],
   );
-  const yTicks = targetYScale.ticks(5);
+  const yTicks = targetYScale.ticks(
+    Math.max(2, Math.floor(height / PX_PER_Y_TICK)),
+  );
 
   const xMin = useMotionValue(targetXMin);
   const xMax = useMotionValue(targetXMax);
