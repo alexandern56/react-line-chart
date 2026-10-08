@@ -1,6 +1,6 @@
 import { useElementSize } from "../hooks/useElementSize";
 import { scaleLinear, scaleUtc } from "d3-scale";
-import { extent, bisector } from "d3-array";
+import { extent, bisector, nice } from "d3-array";
 import { curveMonotoneX, line } from "d3-shape";
 import { type Point } from "../types/chart";
 import { lttb } from "../utils/lttb";
@@ -14,6 +14,7 @@ import {
 } from "react";
 import {
   animate,
+  AnimatePresence,
   motion,
   useMotionValue,
   useReducedMotion,
@@ -102,18 +103,28 @@ const linePath = line<Point>(
 function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
   const [targetXMin, targetXMax] = xDomain;
 
-  const [targetYMin = 0, targetYMax = 0] = useMemo(
-    () => extent(sliceByDomain(data, targetXMin, targetXMax), (d) => d.y),
-    [data, targetXMin, targetXMax],
+  const [targetYMin, targetYMax] = useMemo(() => {
+    const [lo = 0, hi = 0] = extent(
+      sliceByDomain(data, targetXMin, targetXMax),
+      (d) => d.y,
+    );
+    const pad = (hi - lo) * 0.15;
+    return nice(Math.max(0, lo - pad), hi + pad, 10);
+  }, [data, targetXMin, targetXMax]);
+
+  const targetYScale = useMemo(
+    () => scaleLinear().domain([targetYMin, targetYMax]).range([height, 0]),
+    [targetYMin, targetYMax, height],
   );
+  const yTicks = targetYScale.ticks(5);
 
   const xMin = useMotionValue(targetXMin);
   const xMax = useMotionValue(targetXMax);
   const yMin = useMotionValue(targetYMin);
   const yMax = useMotionValue(targetYMax);
   const progress = useMotionValue(0);
-  const snapshot = useMotionValue<Point[]>([]);
   const prevDataRef = useRef<Point[]>([]);
+  const snapshot = useMotionValue<Point[]>([]);
 
   const reduceMotion = useReducedMotion();
 
@@ -191,9 +202,25 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
         d={pathD}
         className="fill-none stroke-black stroke-1"
       ></motion.path>
-      {/* {displayedData.map((d) => ( */}
-      {/*   <circle key={d.x} cx={xScale(d.x)} cy={yScale(d.y)} r={3}></circle> */}
-      {/* ))} */}
+      <AnimatePresence>
+        <motion.g
+          key={`${targetYMin}:${targetYMax}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.4, delay: 0.6 } }}
+          exit={{ opacity: 0, transition: { duration: 0.4 } }}
+        >
+          {yTicks.map((tick) => (
+            <text
+              key={tick}
+              x={15}
+              y={targetYScale(tick)}
+              dominantBaseline="middle"
+            >
+              {tick}
+            </text>
+          ))}
+        </motion.g>
+      </AnimatePresence>
     </>
   );
 }
