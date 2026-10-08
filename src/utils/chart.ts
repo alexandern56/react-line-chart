@@ -11,6 +11,7 @@ export function getRangeDomain(
   range: ChartRange,
   data: Point[],
 ): [number, number] {
+  if (data.length === 0) return [0, 0];
   const first = data[0].x;
   const last = data[data.length - 1].x;
   if (range === "All") return [first, last];
