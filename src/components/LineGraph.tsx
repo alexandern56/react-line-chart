@@ -4,7 +4,14 @@ import { extent, bisector } from "d3-array";
 import { line } from "d3-shape";
 import { type Point } from "../types/chart";
 import { lttb } from "../utils/lttb";
-import { useEffect, useMemo } from "react";
+import { getMorphEndpoints, lerpPoints } from "../utils/morph";
+import {
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import {
   animate,
   motion,
@@ -46,7 +53,7 @@ interface LinePlotProps {
 }
 
 const bisectX = bisector<Point, number>((d) => d.x);
-const ZOOM_TRANSITION = {
+const TRANSITION = {
   duration: 0.8,
   ease: [0.65, 0, 0.35, 1],
 } satisfies ValueAnimationTransition;
@@ -56,30 +63,44 @@ function sliceByDomain(data: Point[], xMin: number, xMax: number) {
   const end = Math.min(data.length, bisectX.right(data, xMax) + 1);
   return data.slice(start, end);
 }
-function buildPath(
+type Domain = [xMin: number, xMax: number, yMin: number, yMax: number];
+
+function getScreenPoints(
   data: Point[],
-  xMin: number,
-  xMax: number,
-  yMin: number,
-  yMax: number,
+  [xMin, xMax, yMin, yMax]: Domain,
   width: number,
   height: number,
-) {
+): Point[] {
   const visibleData = sliceByDomain(data, xMin, xMax);
   const displayedData = lttb(visibleData, Math.floor(width / PX_PER_POINT));
 
   const yScale = scaleLinear().domain([yMin, yMax]).range([height, 0]);
   const xScale = scaleUtc().domain([xMin, xMax]).range([0, width]);
 
-  return (
-    line<Point>(
-      (d) => xScale(d.x),
-      (d) => yScale(d.y),
-    )(displayedData) ?? ""
-  );
+  return displayedData.map((d) => ({ x: xScale(d.x), y: yScale(d.y) }));
 }
-export function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
-  const [targetXMin = 0, targetXMax = 0] = xDomain;
+
+function getRenderedPoints(
+  data: Point[],
+  domain: Domain,
+  snapshot: Point[],
+  progress: number,
+  width: number,
+  height: number,
+): Point[] {
+  const target = getScreenPoints(data, domain, width, height);
+  if (progress >= 1) return target;
+  const { from, to } = getMorphEndpoints(snapshot, target, height);
+  return lerpPoints(from, to, progress);
+}
+
+const linePath = line<Point>(
+  (d) => d.x,
+  (d) => d.y,
+);
+
+function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
+  const [targetXMin, targetXMax] = xDomain;
 
   const [targetYMin = 0, targetYMax = 0] = useMemo(
     () => extent(sliceByDomain(data, targetXMin, targetXMax), (d) => d.y),
@@ -90,12 +111,46 @@ export function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
   const xMax = useMotionValue(targetXMax);
   const yMin = useMotionValue(targetYMin);
   const yMax = useMotionValue(targetYMax);
+  const progress = useMotionValue(0);
+  const snapshot = useMotionValue<Point[]>([]);
+  const prevDataRef = useRef<Point[]>([]);
 
   const reduceMotion = useReducedMotion();
 
+  const startMorph = useEffectEvent((nextData: Point[]) => {
+    const domain: Domain = [xMin.get(), xMax.get(), yMin.get(), yMax.get()];
+    snapshot.set(
+      getRenderedPoints(
+        prevDataRef.current,
+        domain,
+        snapshot.get(),
+        progress.get(),
+        width,
+        height,
+      ),
+    );
+    prevDataRef.current = nextData;
+
+    xMin.jump(targetXMin);
+    xMax.jump(targetXMax);
+    yMin.jump(targetYMin);
+    yMax.jump(targetYMax);
+
+    progress.jump(0);
+    return animate(progress, 1, {
+      ...TRANSITION,
+      skipAnimations: reduceMotion === true,
+    });
+  });
+
+  useLayoutEffect(() => {
+    const animation = startMorph(data);
+    return () => animation.stop();
+  }, [data]);
+
   useEffect(() => {
     const transition = {
-      ...ZOOM_TRANSITION,
+      ...TRANSITION,
       skipAnimations: reduceMotion === true,
     };
     const animations = [
@@ -117,11 +172,18 @@ export function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
     reduceMotion,
   ]);
 
-  const pathD = useTransform(
-    [xMin, xMax, yMin, yMax],
-    ([x0, x1, y0, y1]: number[]) =>
-      buildPath(data, x0, x1, y0, y1, width, height),
-  );
+  const pathD = useTransform(() => {
+    const domain: Domain = [xMin.get(), xMax.get(), yMin.get(), yMax.get()];
+    const points = getRenderedPoints(
+      data,
+      domain,
+      snapshot.get(),
+      progress.get(),
+      width,
+      height,
+    );
+    return linePath(points) ?? "";
+  });
 
   return (
     <>

@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { LineChart } from "./components/LineChart";
 import { LineGraphBasic } from "./components/LineGraphBasic.tsx";
 import { generateData } from "./generateData";
 
 const DATA = generateData(1000);
 function App() {
+  const [data, setData] = useState(DATA);
+
   return (
     <main className="flex flex-col gap-5 p-10">
       <h2>Basic</h2>
@@ -12,8 +15,25 @@ function App() {
       </div>
 
       <h2>Normal</h2>
+      <button
+        type="button"
+        className="self-start border px-2"
+        onClick={() =>
+          setData(generateData(300 + Math.floor(Math.random() * 700)))
+        }
+      >
+        New data
+      </button>
+
+      <button
+        type="button"
+        className="self-start border px-2"
+        onClick={() => setData([])}
+      >
+        Empty data
+      </button>
       <div className="border">
-        <LineChart data={DATA}></LineChart>
+        <LineChart data={data}></LineChart>
       </div>
     </main>
   );
