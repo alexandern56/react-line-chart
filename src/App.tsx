@@ -41,6 +41,14 @@ function App() {
       >
         1 data point
       </button>
+
+      <button
+        type="button"
+        className="self-start border px-2"
+        onClick={() => document.documentElement.classList.toggle("dark")}
+      >
+        Toggle dark
+      </button>
       <div className="border">
         <LineChart data={data}></LineChart>
       </div>
