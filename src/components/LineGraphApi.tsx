@@ -47,6 +47,8 @@ interface LineGraphProps {
   className?: string;
   /** One drawn point per N px, downsampled with LTTB. `null` draws every point. Default: 3. */
   pxPerPoint?: number | null;
+  /** Animate range zoom and data morph. `false` behaves like reduced motion. Default: true. */
+  animate?: boolean;
 }
 
 type Formatters = Required<
@@ -146,6 +148,7 @@ export function LineGraphApi({
   locale,
   className,
   pxPerPoint = PX_PER_POINT,
+  animate: isAnimated = true,
 }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
   const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
@@ -174,6 +177,7 @@ export function LineGraphApi({
               overlay={overlay}
               format={format}
               pxPerPoint={pxPerPoint}
+              isAnimated={isAnimated}
             ></LinePlot>
           </g>
         )}
@@ -195,6 +199,7 @@ interface LinePlotProps {
   overlay: HTMLDivElement | null;
   format: Formatters;
   pxPerPoint: number | null;
+  isAnimated: boolean;
 }
 
 const bisectX = bisector<Point, number>((d) => d.x);
@@ -256,6 +261,7 @@ function LinePlot({
   overlay,
   format,
   pxPerPoint,
+  isAnimated,
 }: LinePlotProps) {
   const { formatValue, formatDate, formatYTick, formatXTick } = format;
   const [targetXMin, targetXMax] = xDomain;
@@ -344,12 +350,13 @@ function LinePlot({
   const [isLeftHalf, setIsLeftHalf] = useState(true);
 
   const reduceMotion = useReducedMotion();
+  const skipAnimations = !isAnimated || reduceMotion === true;
 
   const labelsFade = {
     initial: { opacity: 0 },
     animate: {
       opacity: 1,
-      transition: { duration: 0.4, delay: reduceMotion ? 0 : 0.6 },
+      transition: { duration: 0.4, delay: skipAnimations ? 0 : 0.6 },
     },
     exit: { opacity: 0, transition: { duration: 0.4 } },
   };
@@ -377,7 +384,7 @@ function LinePlot({
     progress.jump(0);
     return animate(progress, 1, {
       ...TRANSITION,
-      skipAnimations: reduceMotion === true,
+      skipAnimations,
     });
   });
 
@@ -389,7 +396,7 @@ function LinePlot({
   useEffect(() => {
     const transition = {
       ...TRANSITION,
-      skipAnimations: reduceMotion === true,
+      skipAnimations,
     };
     const animations = [
       animate(xMin, targetXMin, transition),
@@ -407,7 +414,7 @@ function LinePlot({
     yMax,
     targetYMin,
     targetYMax,
-    reduceMotion,
+    skipAnimations,
   ]);
 
   const points = useTransform(() => {
