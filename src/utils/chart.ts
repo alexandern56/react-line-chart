@@ -1,4 +1,4 @@
-import { bisector } from "d3-array";
+import { bisector, extent, nice } from "d3-array";
 import type { ChartRange, DataStatus, Point } from "../types/chart";
 import {
   MIN_LINE_POINTS,
@@ -13,6 +13,23 @@ export function getDataStatus(data: Point[] | undefined): DataStatus | null {
   if (data.length === 0) return "empty";
   if (data.length < MIN_LINE_POINTS) return "notEnough";
   return null;
+}
+
+export function getYDomain(
+  points: Point[],
+  tickCount: number,
+): [number, number] {
+  const [lo = 0, hi = 0] = extent(points, (d) => d.y);
+  if (lo === hi) {
+    const edge = 2 * lo || 1;
+    return nice(Math.min(0, edge), Math.max(0, edge), tickCount);
+  }
+  const pad = (hi - lo) * 0.15;
+  return nice(
+    lo >= 0 ? Math.max(0, lo - pad) : lo - pad,
+    hi <= 0 ? Math.min(0, hi + pad) : hi + pad,
+    tickCount,
+  );
 }
 
 export function isRangeAvailable(range: ChartRange, data: Point[]) {

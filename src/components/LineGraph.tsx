@@ -1,8 +1,12 @@
 import { useElementSize } from "../hooks/useElementSize";
 import { cn } from "../lib/utils";
-import { scaleLinear, scaleUtc, type ScaleTime } from "d3-scale";
-import { extent, bisector, min, nice, pairs } from "d3-array";
-import { type Point } from "../types/chart";
+import { scaleLinear, scaleUtc } from "d3-scale";
+import { bisector, min, pairs } from "d3-array";
+import { NO_DATA } from "../constants/chart";
+import type { Formatters, Point } from "../types/chart";
+import { getYDomain } from "../utils/chart";
+import { getDefaultFormatters } from "../utils/format";
+import { getXTicks, measureText } from "../utils/ticks";
 import { area, curveMonotoneX, line } from "d3-shape";
 import { lttb } from "../utils/lttb";
 import { getMorphEndpoints, lerpPoints } from "../utils/morph";
@@ -18,6 +22,7 @@ import {
   type ComponentProps,
   type KeyboardEvent,
   type PointerEvent,
+  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -29,21 +34,13 @@ import {
   useTransform,
   type ValueAnimationTransition,
 } from "motion/react";
-import { utcMonth, utcWeek, utcYear } from "d3-time";
 
-interface LineGraphProps extends Omit<ComponentProps<"div">, "children"> {
+interface LineGraphProps
+  extends Omit<ComponentProps<"div">, "children">, Partial<Formatters> {
   /** Points sorted by x ascending; x is a UTC timestamp in ms, step ≥ 1 day. */
   data: Point[];
   /** Visible x range [start, end] in ms. Default: the full data extent. */
   xDomain?: [number, number];
-  /** Tooltip value. Default: `Intl.NumberFormat` with up to 1 fraction digit. */
-  formatValue?: (value: number) => string;
-  /** Tooltip date. Default: day, short month and year in UTC, e.g. "Sep 24, 2026". */
-  formatDate?: (date: Date) => string;
-  /** Y axis label, also used to measure it. Default: `Intl.NumberFormat`. */
-  formatYTick?: (value: number) => string;
-  /** X axis label, also used to measure it. Default: day, month or year in UTC, depending on the tick. */
-  formatXTick?: (date: Date) => string;
   /** BCP 47 locale for the default formatters, e.g. "de-DE". Default: the runtime locale. */
   locale?: string;
   /** Classes for the root element. Default size: `h-68.75 w-full`. */
@@ -54,95 +51,14 @@ interface LineGraphProps extends Omit<ComponentProps<"div">, "children"> {
   animate?: boolean;
 }
 
-type Formatters = Required<
-  Pick<
-    LineGraphProps,
-    "formatValue" | "formatDate" | "formatYTick" | "formatXTick"
-  >
->;
-
 const PX_PER_POINT = 3;
 const PX_PER_Y_TICK = 50;
-const X_LABEL_GAP = 24;
 const Y_LABEL_X = 15;
 const Y_LABEL_DY = -4;
 const GLOW_RADIUS = 600;
 const LINE_CLIP_PAD = 2;
 
 const MARGIN = { top: 15, bottom: 35 };
-
-function getDefaultFormatters(locale?: string): Formatters {
-  const day = new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-  const month = new Intl.DateTimeFormat(locale, {
-    month: "short",
-    timeZone: "UTC",
-  });
-  const year = new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    timeZone: "UTC",
-  });
-  const date = new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-  const value = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
-  const tick = new Intl.NumberFormat(locale);
-
-  return {
-    formatValue: value.format,
-    formatDate: date.format,
-    formatYTick: tick.format,
-    formatXTick: (d) => {
-      if (utcMonth(d) < d) return day.format(d);
-      if (utcYear(d) < d) return month.format(d);
-      return year.format(d);
-    },
-  };
-}
-let measureContext: CanvasRenderingContext2D | null = null;
-
-function measureText(text: string, font: string) {
-  measureContext ??= document.createElement("canvas").getContext("2d")!;
-  measureContext.font = font;
-  return measureContext.measureText(text).width;
-}
-
-function getXTicks(
-  scale: ScaleTime<number, number>,
-  width: number,
-  labelWidth: (tick: Date) => number,
-  isVisible: (tick: Date) => boolean,
-  dataStep: number,
-) {
-  const fits = (ticks: Date[]) => {
-    if (ticks.length < 2) return true;
-    const gap =
-      (scale(ticks[ticks.length - 1]) - scale(ticks[0])) / (ticks.length - 1);
-    return gap >= Math.max(...ticks.map(labelWidth)) + X_LABEL_GAP;
-  };
-
-  const [start, end] = scale.domain();
-  let lo = 1;
-  const maxTicks = (end.getTime() - start.getTime()) / dataStep;
-  let hi = Math.min(Math.floor(width / X_LABEL_GAP), Math.floor(maxTicks));
-  while (lo < hi) {
-    const mid = Math.ceil((lo + hi) / 2);
-    if (fits(scale.ticks(mid))) lo = mid;
-    else hi = mid - 1;
-  }
-  const ticks = scale.ticks(lo).filter(isVisible);
-  if (ticks.length > 0) return ticks;
-  const biweekly = scale.ticks(utcWeek.every(2)!);
-  return fits(biweekly) && biweekly.length <= maxTicks
-    ? biweekly.filter(isVisible)
-    : [];
-}
 
 export function LineGraph({
   data,
@@ -184,7 +100,7 @@ export function LineGraph({
         {width > 0 && (
           <g transform={`translate(0,${MARGIN.top})`}>
             <LinePlot
-              data={data.length > 1 ? data : []}
+              data={data.length > 1 ? data : NO_DATA}
               width={width}
               height={height - MARGIN.top - MARGIN.bottom}
               xDomain={[xMin, xMax]}
@@ -263,6 +179,33 @@ function getRenderedPoints(
 
 const CURVE = curveMonotoneX;
 
+interface FadeGroupProps {
+  show: boolean;
+  fadeKey: string;
+  delayed: boolean;
+  children: ReactNode;
+}
+
+function FadeGroup({ show, fadeKey, delayed, children }: FadeGroupProps) {
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.g
+          key={fadeKey}
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: 1,
+            transition: { duration: 0.4, delay: delayed ? 0.6 : 0 },
+          }}
+          exit={{ opacity: 0, transition: { duration: 0.4 } }}
+        >
+          {children}
+        </motion.g>
+      )}
+    </AnimatePresence>
+  );
+}
+
 const linePath = line<Point>(
   (d) => d.x,
   (d) => d.y,
@@ -284,22 +227,10 @@ function LinePlot({
   const maxPoints =
     pxPerPoint === null ? Infinity : Math.floor(width / pxPerPoint);
 
-  const [targetYMin, targetYMax] = useMemo(() => {
-    const [lo = 0, hi = 0] = extent(
-      sliceByDomain(data, targetXMin, targetXMax),
-      (d) => d.y,
-    );
-    if (lo === hi) {
-      const edge = 2 * lo || 1;
-      return nice(Math.min(0, edge), Math.max(0, edge), yTickCount);
-    }
-    const pad = (hi - lo) * 0.15;
-    return nice(
-      lo >= 0 ? Math.max(0, lo - pad) : lo - pad,
-      hi <= 0 ? Math.min(0, hi + pad) : hi + pad,
-      yTickCount,
-    );
-  }, [data, targetXMin, targetXMax, yTickCount]);
+  const [targetYMin, targetYMax] = useMemo(
+    () => getYDomain(sliceByDomain(data, targetXMin, targetXMax), yTickCount),
+    [data, targetXMin, targetXMax, yTickCount],
+  );
 
   const targetYScale = useMemo(
     () => scaleLinear().domain([targetYMin, targetYMax]).range([height, 0]),
@@ -374,15 +305,6 @@ function LinePlot({
 
   const reduceMotion = useReducedMotion();
   const skipAnimations = !isAnimated || reduceMotion === true;
-
-  const labelsFade = {
-    initial: { opacity: 0 },
-    animate: {
-      opacity: 1,
-      transition: { duration: 0.4, delay: skipAnimations ? 0 : 0.6 },
-    },
-    exit: { opacity: 0, transition: { duration: 0.4 } },
-  };
 
   const curveFade = {
     initial: { opacity: 0 },
@@ -526,22 +448,22 @@ function LinePlot({
 
   return (
     <>
-      <AnimatePresence>
-        {data.length > 0 && (
-          <motion.g key={`${targetYMin}:${targetYMax}`} {...labelsFade}>
-            {yTicks.map((tick) => (
-              <line
-                key={tick}
-                y1={targetYScale(tick)}
-                x2={width}
-                y2={targetYScale(tick)}
-                shapeRendering="crispEdges"
-                className="stroke-border/50"
-              />
-            ))}
-          </motion.g>
-        )}
-      </AnimatePresence>
+      <FadeGroup
+        show={data.length > 0}
+        fadeKey={`${targetYMin}:${targetYMax}`}
+        delayed={!skipAnimations}
+      >
+        {yTicks.map((tick) => (
+          <line
+            key={tick}
+            y1={targetYScale(tick)}
+            x2={width}
+            y2={targetYScale(tick)}
+            shapeRendering="crispEdges"
+            className="stroke-border/50"
+          />
+        ))}
+      </FadeGroup>
       <svg width={width} height={height + MARGIN.bottom}>
         <defs>
           <linearGradient id={`${uid}-area`} x1="0" y1="0" x2="0" y2="1">
@@ -581,40 +503,35 @@ function LinePlot({
           className="stroke-1.5 fill-none"
         ></motion.path>
       </svg>
-      <AnimatePresence>
-        {data.length > 0 && (
-          <motion.g key={`${targetYMin}:${targetYMax}`} {...labelsFade}>
-            {yTicks.map((tick) => (
-              <text
-                key={tick}
-                x={Y_LABEL_X}
-                y={targetYScale(tick)}
-                dy={Y_LABEL_DY}
-              >
-                {formatYTick(tick)}
-              </text>
-            ))}
-          </motion.g>
-        )}
-      </AnimatePresence>
+      <FadeGroup
+        show={data.length > 0}
+        fadeKey={`${targetYMin}:${targetYMax}`}
+        delayed={!skipAnimations}
+      >
+        {yTicks.map((tick) => (
+          <text key={tick} x={Y_LABEL_X} y={targetYScale(tick)} dy={Y_LABEL_DY}>
+            {formatYTick(tick)}
+          </text>
+        ))}
+      </FadeGroup>
       <g>
         <text ref={xLabelProbeRef} className="invisible" />
-        <AnimatePresence>
-          {data.length > 0 && (
-            <motion.g key={`${targetXMin}:${targetXMax}`} {...labelsFade}>
-              {xTicks.map((tick) => (
-                <text
-                  key={tick.getTime()}
-                  x={targetXScale(tick)}
-                  y={height + 20}
-                  textAnchor="middle"
-                >
-                  {formatXTick(tick)}
-                </text>
-              ))}
-            </motion.g>
-          )}
-        </AnimatePresence>
+        <FadeGroup
+          show={data.length > 0}
+          fadeKey={`${targetXMin}:${targetXMax}`}
+          delayed={!skipAnimations}
+        >
+          {xTicks.map((tick) => (
+            <text
+              key={tick.getTime()}
+              x={targetXScale(tick)}
+              y={height + 20}
+              textAnchor="middle"
+            >
+              {formatXTick(tick)}
+            </text>
+          ))}
+        </FadeGroup>
       </g>
       {data.length > 0 && (
         <motion.g style={{ opacity: hoverOpacity }}>
