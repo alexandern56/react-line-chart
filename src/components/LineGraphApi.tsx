@@ -14,6 +14,8 @@ import {
   useMemo,
   useRef,
   useState,
+  type ComponentProps,
+  type KeyboardEvent,
   type PointerEvent,
 } from "react";
 import { createPortal } from "react-dom";
@@ -28,7 +30,7 @@ import {
 } from "motion/react";
 import { utcMonth, utcWeek, utcYear } from "d3-time";
 
-interface LineGraphProps {
+interface LineGraphProps extends Omit<ComponentProps<"div">, "children"> {
   /** Points sorted by x ascending; x is a UTC timestamp in ms, step ≥ 1 day. */
   data: Point[];
   /** Visible x range [start, end] in ms. Default: the full data extent. */
@@ -149,6 +151,7 @@ export function LineGraphApi({
   className,
   pxPerPoint = PX_PER_POINT,
   animate: isAnimated = true,
+  ...props
 }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
   const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
@@ -162,7 +165,14 @@ export function LineGraphApi({
   };
 
   return (
-    <div className={cn("relative h-68.75 w-full", className)}>
+    <div
+      role="figure"
+      {...props}
+      className={cn(
+        "relative h-68.75 w-full has-focus-visible:outline-2",
+        className,
+      )}
+    >
       <svg
         ref={ref}
         className="absolute inset-0 size-full touch-pan-y overflow-visible"
@@ -203,6 +213,7 @@ interface LinePlotProps {
 }
 
 const bisectX = bisector<Point, number>((d) => d.x);
+const KEY_STEP: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
 const TRANSITION = {
   duration: 0.8,
   ease: [0.65, 0, 0.35, 1],
@@ -434,11 +445,13 @@ function LinePlot({
   const hoverY = useTransform(
     () => yAt(segments.get(), hoverX.get()) ?? height,
   );
-  const hoveredPoint = useTransform(() => {
-    const time =
-      xMin.get() + (hoverX.get() / width) * (xMax.get() - xMin.get());
-    return data.at(Math.max(0, bisectX.right(data, time) - 1));
-  });
+  const getHoveredIndex = () => {
+    const time = Math.round(
+      xMin.get() + (hoverX.get() / width) * (xMax.get() - xMin.get()),
+    );
+    return Math.max(0, bisectX.right(data, time) - 1);
+  };
+  const hoveredPoint = useTransform(() => data.at(getHoveredIndex()));
   const hoveredDate = useTransform(hoveredPoint, (p) =>
     p ? formatDate(new Date(p.x)) : "",
   );
@@ -446,12 +459,30 @@ function LinePlot({
     p ? formatValue(p.y) : "",
   );
 
-  const showHover = (e: PointerEvent<SVGRectElement>) => {
-    const { left } = e.currentTarget.getBoundingClientRect();
-    const x = Math.max(0, Math.min(width, e.clientX - left));
+  const showHoverAt = (x: number) => {
     hoverX.set(x);
     hoverOpacity.set(1);
     setIsLeftHalf(x < width / 2);
+  };
+
+  const showHover = (e: PointerEvent<SVGRectElement>) => {
+    const { left } = e.currentTarget.getBoundingClientRect();
+    showHoverAt(Math.max(0, Math.min(width, e.clientX - left)));
+  };
+
+  const moveHover = (e: KeyboardEvent<SVGRectElement>) => {
+    if (e.key === "Escape") {
+      hoverOpacity.set(0);
+      return;
+    }
+    const step = KEY_STEP[e.key];
+    if (!step || data.length === 0) return;
+    e.preventDefault();
+    const first = bisectX.left(data, targetXMin);
+    const last = bisectX.right(data, targetXMax) - 1;
+    const offset = hoverOpacity.get() > 0 ? step : 0;
+    const i = Math.max(first, Math.min(last, getHoveredIndex() + offset));
+    showHoverAt(targetXScale(data[i].x));
   };
 
   useEffect(
@@ -526,6 +557,11 @@ function LinePlot({
         width={width}
         height={height}
         fill="transparent"
+        tabIndex={data.length > 0 ? 0 : undefined}
+        role="application"
+        className="outline-none"
+        onKeyDown={moveHover}
+        onBlur={() => hoverOpacity.set(0)}
         onPointerDown={showHover}
         onPointerMove={showHover}
         onPointerLeave={(e) => {
@@ -541,6 +577,7 @@ function LinePlot({
             className="absolute"
           >
             <div
+              role="status"
               className={`-translate-y-1/2 border bg-white px-2 py-1 text-xs whitespace-nowrap transition-transform duration-300 ${isLeftHalf ? "translate-x-3" : "-translate-x-[calc(100%+12px)]"}`}
             >
               <motion.div>{hoveredDate}</motion.div>
