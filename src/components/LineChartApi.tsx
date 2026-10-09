@@ -80,7 +80,7 @@ export function LineChartApi({ data }: { data: Point[] | undefined }) {
           Showing values for the selected range
         </CardDescription>
         <CardAction className="col-span-full col-start-1 row-span-1 row-start-3 mt-2 justify-self-stretch @lg/card-header:col-span-1 @lg/card-header:col-start-2 @lg/card-header:row-span-2 @lg/card-header:row-start-1 @lg/card-header:mt-0 @lg/card-header:justify-self-end">
-          <fieldset className="flex h-8 items-center rounded-lg bg-muted p-[3px] text-muted-foreground">
+          <fieldset className="flex h-8 items-center rounded-lg bg-muted p-0.75 text-muted-foreground">
             <legend className="sr-only">Data range</legend>
             {CHART_RANGES.map((r) => (
               <label
