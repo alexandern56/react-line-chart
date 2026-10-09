@@ -169,7 +169,7 @@ export function LineGraphApi({
       role="figure"
       {...props}
       className={cn(
-        "relative h-68.75 w-full has-focus-visible:outline-2",
+        "relative h-68.75 w-full fill-muted-foreground text-xs has-focus-visible:outline-2",
         className,
       )}
     >
@@ -498,7 +498,7 @@ function LinePlot({
           initial={{ opacity: 0 }}
           animate={{ opacity: data.length > 0 ? 1 : 0 }}
           transition={TRANSITION}
-          className="fill-none stroke-black stroke-1"
+          className="fill-none stroke-chart-1 stroke-1"
         ></motion.path>
       </svg>
       <AnimatePresence>
@@ -543,13 +543,13 @@ function LinePlot({
               y2={height}
               strokeDasharray="3 3"
               style={{ x: hoverX, y: hoverY }}
-              className="stroke-black"
+              className="stroke-border"
             />
           </svg>
           <motion.circle
             r={6}
             style={{ x: hoverX, y: hoverY }}
-            className="fill-black"
+            className="fill-chart-1"
           />
         </motion.g>
       )}
@@ -578,10 +578,17 @@ function LinePlot({
           >
             <div
               role="status"
-              className={`-translate-y-1/2 border bg-white px-2 py-1 text-xs whitespace-nowrap transition-transform duration-300 ${isLeftHalf ? "translate-x-3" : "-translate-x-[calc(100%+12px)]"}`}
+              className={cn(
+                "grid min-w-32 -translate-y-1/2 gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs whitespace-nowrap shadow-xl transition-transform duration-300",
+                isLeftHalf ? "translate-x-3" : "-translate-x-[calc(100%+12px)]",
+              )}
             >
-              <motion.div>{hoveredDate}</motion.div>
-              <motion.div>{hoveredValue}</motion.div>
+              <motion.div className="border-b border-border/50 pb-1.5 font-medium">
+                {hoveredDate}
+              </motion.div>
+              <motion.div className="font-mono font-medium text-foreground tabular-nums">
+                {hoveredValue}
+              </motion.div>
             </div>
           </motion.div>,
           overlay,
