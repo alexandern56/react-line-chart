@@ -290,7 +290,11 @@ function LinePlot({
       (d) => d.y,
     );
     const pad = (hi - lo) * 0.15;
-    return nice(Math.max(0, lo - pad), hi + pad, yTickCount);
+    return nice(
+      lo >= 0 ? Math.max(0, lo - pad) : lo - pad,
+      hi <= 0 ? Math.min(0, hi + pad) : hi + pad,
+      yTickCount,
+    );
   }, [data, targetXMin, targetXMax, yTickCount]);
 
   const targetYScale = useMemo(
