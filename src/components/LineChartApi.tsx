@@ -73,7 +73,7 @@ export function LineChartApi({ data }: { data: Point[] | undefined }) {
   const xDomain = getRangeDomain(range, points);
 
   return (
-    <Card className="pb-0">
+    <Card className="overflow-visible pb-0">
       <CardHeader>
         <CardTitle>Line Chart - Interactive</CardTitle>
         <CardDescription>Showing values for the selected range</CardDescription>
