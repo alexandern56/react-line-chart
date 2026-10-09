@@ -45,6 +45,8 @@ interface LineGraphProps {
   locale?: string;
   /** Classes for the root element. Default size: `h-68.75 w-full`. */
   className?: string;
+  /** One drawn point per N px, downsampled with LTTB. `null` draws every point. Default: 3. */
+  pxPerPoint?: number | null;
 }
 
 type Formatters = Required<
@@ -143,6 +145,7 @@ export function LineGraphApi({
   formatXTick,
   locale,
   className,
+  pxPerPoint = PX_PER_POINT,
 }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
   const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
@@ -170,6 +173,7 @@ export function LineGraphApi({
               xDomain={[xMin, xMax]}
               overlay={overlay}
               format={format}
+              pxPerPoint={pxPerPoint}
             ></LinePlot>
           </g>
         )}
@@ -190,6 +194,7 @@ interface LinePlotProps {
   xDomain: [number, number];
   overlay: HTMLDivElement | null;
   format: Formatters;
+  pxPerPoint: number | null;
 }
 
 const bisectX = bisector<Point, number>((d) => d.x);
@@ -210,9 +215,10 @@ function getScreenPoints(
   [xMin, xMax, yMin, yMax]: Domain,
   width: number,
   height: number,
+  maxPoints: number,
 ): Point[] {
   const visibleData = sliceByDomain(data, xMin, xMax);
-  const displayedData = lttb(visibleData, Math.floor(width / PX_PER_POINT));
+  const displayedData = lttb(visibleData, maxPoints);
 
   const yScale = scaleLinear().domain([yMin, yMax]).range([height, 0]);
   const xScale = scaleUtc().domain([xMin, xMax]).range([0, width]);
@@ -227,8 +233,9 @@ function getRenderedPoints(
   progress: number,
   width: number,
   height: number,
+  maxPoints: number,
 ): Point[] {
-  const target = getScreenPoints(data, domain, width, height);
+  const target = getScreenPoints(data, domain, width, height, maxPoints);
   if (progress >= 1) return target;
   const { from, to } = getMorphEndpoints(snapshot, target, height);
   return lerpPoints(from, to, progress);
@@ -248,10 +255,13 @@ function LinePlot({
   xDomain,
   overlay,
   format,
+  pxPerPoint,
 }: LinePlotProps) {
   const { formatValue, formatDate, formatYTick, formatXTick } = format;
   const [targetXMin, targetXMax] = xDomain;
   const yTickCount = Math.max(2, Math.floor(height / PX_PER_Y_TICK));
+  const maxPoints =
+    pxPerPoint === null ? Infinity : Math.floor(width / pxPerPoint);
 
   const [targetYMin, targetYMax] = useMemo(() => {
     const [lo = 0, hi = 0] = extent(
@@ -354,6 +364,7 @@ function LinePlot({
         progress.get(),
         width,
         height,
+        maxPoints,
       ),
     );
     prevDataRef.current = nextData;
@@ -408,6 +419,7 @@ function LinePlot({
       progress.get(),
       width,
       height,
+      maxPoints,
     );
   });
   const pathD = useTransform(() => linePath(points.get()) ?? "");
