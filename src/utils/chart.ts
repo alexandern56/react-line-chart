@@ -8,6 +8,12 @@ import {
 
 const bisectX = bisector<Point, number>((d) => d.x);
 
+export function sliceByDomain(data: Point[], xMin: number, xMax: number) {
+  const start = Math.max(0, bisectX.left(data, xMin) - 1);
+  const end = Math.min(data.length, bisectX.right(data, xMax) + 1);
+  return data.slice(start, end);
+}
+
 export function getDataStatus(data: Point[] | undefined): DataStatus | null {
   if (data === undefined) return "loading";
   if (data.length === 0) return "empty";

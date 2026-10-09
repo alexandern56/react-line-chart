@@ -1,38 +1,28 @@
 import { useElementSize } from "../hooks/useElementSize";
+import { useAnimatedPoints } from "../hooks/useAnimatedPoints";
+import { useAxisLabels } from "../hooks/useAxisLabels";
+import { useChartHover } from "../hooks/useChartHover";
 import { cn } from "../lib/utils";
 import { scaleLinear, scaleUtc } from "d3-scale";
-import { bisector, min, pairs } from "d3-array";
-import { NO_DATA } from "../constants/chart";
+import { min, pairs } from "d3-array";
+import { area, line } from "d3-shape";
+import { CURVE, NO_DATA, TRANSITION, Y_LABEL_X } from "../constants/chart";
 import type { Formatters, Point } from "../types/chart";
-import { getYDomain } from "../utils/chart";
+import { getYDomain, sliceByDomain } from "../utils/chart";
 import { getDefaultFormatters } from "../utils/format";
-import { getXTicks, measureText } from "../utils/ticks";
-import { area, curveMonotoneX, line } from "d3-shape";
-import { lttb } from "../utils/lttb";
-import { getMorphEndpoints, lerpPoints } from "../utils/morph";
-import { getSegments, yAt } from "../utils/curve";
 import {
-  useEffect,
-  useEffectEvent,
   useId,
-  useLayoutEffect,
   useMemo,
-  useRef,
   useState,
   type ComponentProps,
-  type KeyboardEvent,
-  type PointerEvent,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import {
-  animate,
   AnimatePresence,
   motion,
-  useMotionValue,
   useReducedMotion,
   useTransform,
-  type ValueAnimationTransition,
 } from "motion/react";
 
 interface LineGraphProps
@@ -53,7 +43,6 @@ interface LineGraphProps
 
 const PX_PER_POINT = 3;
 const PX_PER_Y_TICK = 50;
-const Y_LABEL_X = 15;
 const Y_LABEL_DY = -4;
 const GLOW_RADIUS = 600;
 const LINE_CLIP_PAD = 2;
@@ -132,53 +121,6 @@ interface LinePlotProps {
   isAnimated: boolean;
 }
 
-const bisectX = bisector<Point, number>((d) => d.x);
-const KEY_STEP: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
-const TRANSITION = {
-  duration: 0.8,
-  ease: [0.65, 0, 0.35, 1],
-} satisfies ValueAnimationTransition;
-
-function sliceByDomain(data: Point[], xMin: number, xMax: number) {
-  const start = Math.max(0, bisectX.left(data, xMin) - 1);
-  const end = Math.min(data.length, bisectX.right(data, xMax) + 1);
-  return data.slice(start, end);
-}
-type Domain = [xMin: number, xMax: number, yMin: number, yMax: number];
-
-function getScreenPoints(
-  data: Point[],
-  [xMin, xMax, yMin, yMax]: Domain,
-  width: number,
-  height: number,
-  maxPoints: number,
-): Point[] {
-  const visibleData = sliceByDomain(data, xMin, xMax);
-  const displayedData = lttb(visibleData, maxPoints);
-
-  const yScale = scaleLinear().domain([yMin, yMax]).range([height, 0]);
-  const xScale = scaleUtc().domain([xMin, xMax]).range([0, width]);
-
-  return displayedData.map((d) => ({ x: xScale(d.x), y: yScale(d.y) }));
-}
-
-function getRenderedPoints(
-  data: Point[],
-  domain: Domain,
-  snapshot: Point[],
-  progress: number,
-  width: number,
-  height: number,
-  maxPoints: number,
-): Point[] {
-  const target = getScreenPoints(data, domain, width, height, maxPoints);
-  if (progress >= 1) return target;
-  const { from, to } = getMorphEndpoints(snapshot, target, height, CURVE);
-  return lerpPoints(from, to, progress);
-}
-
-const CURVE = curveMonotoneX;
-
 interface FadeGroupProps {
   show: boolean;
   fadeKey: string;
@@ -252,134 +194,39 @@ function LinePlot({
     [data],
   );
 
-  const xLabelProbeRef = useRef<SVGTextElement>(null);
-  const [xLabelFont, setXLabelFont] = useState<string | null>(null);
-
-  useLayoutEffect(() => {
-    const s = getComputedStyle(xLabelProbeRef.current!);
-    const font = `${s.fontStyle} ${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
-    let active = true;
-    document.fonts.load(font).then(() => {
-      if (active) setXLabelFont(font);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const xTicks = useMemo(() => {
-    if (xLabelFont === null) return [];
-    const yLabelsRight =
-      Y_LABEL_X +
-      Math.max(
-        ...yTicks.map((tick) => measureText(formatYTick(tick), xLabelFont)),
-      );
-    const labelWidth = (tick: Date) =>
-      measureText(formatXTick(tick), xLabelFont);
-    const isVisible = (tick: Date) => {
-      const x = targetXScale(tick);
-      const halfLabel = labelWidth(tick) / 2;
-      return x - halfLabel >= yLabelsRight && x + halfLabel <= width;
-    };
-    return getXTicks(targetXScale, width, labelWidth, isVisible, dataStep);
-  }, [
-    targetXScale,
-    width,
-    xLabelFont,
-    yTicks,
-    dataStep,
-    formatYTick,
-    formatXTick,
-  ]);
-
-  const xMin = useMotionValue(targetXMin);
-  const xMax = useMotionValue(targetXMax);
-  const yMin = useMotionValue(targetYMin);
-  const yMax = useMotionValue(targetYMax);
-  const progress = useMotionValue(0);
-  const prevDataRef = useRef<Point[]>([]);
-  const snapshot = useMotionValue<Point[]>([]);
-  const hoverX = useMotionValue(0);
-  const hoverOpacity = useMotionValue(0);
-  const [isLeftHalf, setIsLeftHalf] = useState(true);
-
   const reduceMotion = useReducedMotion();
   const skipAnimations = !isAnimated || reduceMotion === true;
 
-  const curveFade = {
-    initial: { opacity: 0 },
-    animate: { opacity: data.length > 0 ? 1 : 0 },
-    transition: TRANSITION,
-  };
-
-  const startMorph = useEffectEvent((nextData: Point[]) => {
-    const domain: Domain = [xMin.get(), xMax.get(), yMin.get(), yMax.get()];
-    snapshot.set(
-      getRenderedPoints(
-        prevDataRef.current,
-        domain,
-        snapshot.get(),
-        progress.get(),
-        width,
-        height,
-        maxPoints,
-      ),
-    );
-    prevDataRef.current = nextData;
-
-    xMin.jump(targetXMin);
-    xMax.jump(targetXMax);
-    yMin.jump(targetYMin);
-    yMax.jump(targetYMax);
-
-    progress.jump(0);
-    return animate(progress, 1, {
-      ...TRANSITION,
-      skipAnimations,
-    });
+  const { probeRef, xTicks } = useAxisLabels({
+    xScale: targetXScale,
+    yTicks,
+    width,
+    dataStep,
+    formatXTick,
+    formatYTick,
   });
 
-  useLayoutEffect(() => {
-    const animation = startMorph(data);
-    return () => animation.stop();
-  }, [data]);
+  const { points, xMin, xMax } = useAnimatedPoints({
+    data,
+    target: [targetXMin, targetXMax, targetYMin, targetYMax],
+    width,
+    height,
+    maxPoints,
+    skipAnimations,
+  });
 
-  useEffect(() => {
-    const transition = {
-      ...TRANSITION,
-      skipAnimations,
-    };
-    const animations = [
-      animate(xMin, targetXMin, transition),
-      animate(xMax, targetXMax, transition),
-      animate(yMin, targetYMin, transition),
-      animate(yMax, targetYMax, transition),
-    ];
-    return () => animations.forEach((animation) => animation.stop());
-  }, [
+  const hover = useChartHover({
+    data,
+    points,
     xMin,
     xMax,
-    targetXMin,
-    targetXMax,
-    yMin,
-    yMax,
-    targetYMin,
-    targetYMax,
-    skipAnimations,
-  ]);
-
-  const points = useTransform(() => {
-    const domain: Domain = [xMin.get(), xMax.get(), yMin.get(), yMax.get()];
-    return getRenderedPoints(
-      data,
-      domain,
-      snapshot.get(),
-      progress.get(),
-      width,
-      height,
-      maxPoints,
-    );
+    xScale: targetXScale,
+    width,
+    height,
+    formatDate,
+    formatValue,
   });
+
   const pathD = useTransform(() => linePath(points.get()) ?? "");
   const areaPath = area<Point>(
     (d) => d.x,
@@ -388,63 +235,12 @@ function LinePlot({
   ).curve(CURVE);
   const areaD = useTransform(() => areaPath(points.get()) ?? "");
   const uid = useId();
-  const segments = useTransform(() => getSegments(points.get(), CURVE));
-  const hoverY = useTransform(
-    () => yAt(segments.get(), hoverX.get()) ?? height,
-  );
-  const glowEdge = useTransform(hoverOpacity, [0, 1], [1, 0.2]);
-  const getHoveredIndex = () => {
-    const time = Math.round(
-      xMin.get() + (hoverX.get() / width) * (xMax.get() - xMin.get()),
-    );
-    return Math.max(0, bisectX.right(data, time) - 1);
+
+  const curveFade = {
+    initial: { opacity: 0 },
+    animate: { opacity: data.length > 0 ? 1 : 0 },
+    transition: TRANSITION,
   };
-  const hoveredPoint = useTransform(() => data.at(getHoveredIndex()));
-  const hoveredDate = useTransform(hoveredPoint, (p) =>
-    p ? formatDate(new Date(p.x)) : "",
-  );
-  const hoveredValue = useTransform(hoveredPoint, (p) =>
-    p ? formatValue(p.y) : "",
-  );
-
-  const showHoverAt = (x: number) => {
-    hoverX.set(x);
-    hoverOpacity.set(1);
-    setIsLeftHalf(x < width / 2);
-  };
-
-  const [hoverMin, hoverMax] =
-    data.length > 0
-      ? [
-          Math.max(0, targetXScale(data[0].x)),
-          Math.min(width, targetXScale(data[data.length - 1].x)),
-        ]
-      : [0, width];
-
-  const showHover = (e: PointerEvent<SVGRectElement>) => {
-    const { left } = e.currentTarget.getBoundingClientRect();
-    showHoverAt(Math.max(hoverMin, Math.min(hoverMax, e.clientX - left)));
-  };
-
-  const moveHover = (e: KeyboardEvent<SVGRectElement>) => {
-    if (e.key === "Escape") {
-      hoverOpacity.set(0);
-      return;
-    }
-    const step = KEY_STEP[e.key];
-    if (!step || data.length === 0) return;
-    e.preventDefault();
-    const first = bisectX.left(data, targetXMin);
-    const last = bisectX.right(data, targetXMax) - 1;
-    const offset = hoverOpacity.get() > 0 ? step : 0;
-    const i = Math.max(first, Math.min(last, getHoveredIndex() + offset));
-    showHoverAt(targetXScale(data[i].x));
-  };
-
-  useEffect(
-    () => hoverOpacity.set(0),
-    [data, targetXMin, targetXMax, hoverOpacity],
-  );
 
   return (
     <>
@@ -483,15 +279,15 @@ function LinePlot({
           <motion.radialGradient
             id={`${uid}-glow`}
             gradientUnits="userSpaceOnUse"
-            cx={hoverX}
-            cy={hoverY}
+            cx={hover.x}
+            cy={hover.y}
             r={GLOW_RADIUS}
           >
             <stop offset="0%" stopColor="var(--chart-1)" />
             <motion.stop
               offset="100%"
               stopColor="var(--chart-1)"
-              stopOpacity={glowEdge}
+              stopOpacity={hover.glowEdge}
               className="transition-[stop-opacity] duration-250"
             />
           </motion.radialGradient>
@@ -515,7 +311,7 @@ function LinePlot({
         ))}
       </FadeGroup>
       <g>
-        <text ref={xLabelProbeRef} className="invisible" />
+        <text ref={probeRef} className="invisible" />
         <FadeGroup
           show={data.length > 0}
           fadeKey={`${targetXMin}:${targetXMax}`}
@@ -534,18 +330,18 @@ function LinePlot({
         </FadeGroup>
       </g>
       {data.length > 0 && (
-        <motion.g style={{ opacity: hoverOpacity }}>
+        <motion.g style={{ opacity: hover.opacity }}>
           <svg width={width} height={height}>
             <motion.line
               y2={height}
               strokeDasharray="3 3"
-              style={{ x: hoverX, y: hoverY }}
+              style={{ x: hover.x, y: hover.y }}
               className="stroke-chart-1"
             />
           </svg>
           <motion.circle
             r={5}
-            style={{ x: hoverX, y: hoverY }}
+            style={{ x: hover.x, y: hover.y }}
             className="fill-chart-1"
           />
         </motion.g>
@@ -557,34 +353,29 @@ function LinePlot({
         tabIndex={data.length > 0 ? 0 : undefined}
         role="application"
         className="outline-none"
-        onKeyDown={moveHover}
-        onBlur={() => hoverOpacity.set(0)}
-        onPointerDown={showHover}
-        onPointerMove={showHover}
-        onPointerLeave={(e) => {
-          if (e.pointerType === "mouse") hoverOpacity.set(0);
-        }}
-        onPointerCancel={() => hoverOpacity.set(0)}
+        {...hover.handlers}
       />
       {overlay &&
         data.length > 0 &&
         createPortal(
           <motion.div
-            style={{ x: hoverX, y: hoverY, opacity: hoverOpacity }}
+            style={{ x: hover.x, y: hover.y, opacity: hover.opacity }}
             className="absolute"
           >
             <div
               role="status"
               className={cn(
                 "grid min-w-32 -translate-y-1/2 gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs whitespace-nowrap shadow-xl transition-transform duration-300",
-                isLeftHalf ? "translate-x-3" : "-translate-x-[calc(100%+12px)]",
+                hover.isLeftHalf
+                  ? "translate-x-3"
+                  : "-translate-x-[calc(100%+12px)]",
               )}
             >
               <motion.div className="border-b border-border/50 pb-1.5 font-medium">
-                {hoveredDate}
+                {hover.date}
               </motion.div>
               <motion.div className="font-mono font-medium text-foreground tabular-nums">
-                {hoveredValue}
+                {hover.value}
               </motion.div>
             </div>
           </motion.div>,
