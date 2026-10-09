@@ -35,16 +35,16 @@ const X_LABEL_GAP = 24;
 
 const MARGIN = { top: 15, bottom: 35 };
 
-const formatDay = new Intl.DateTimeFormat("en", {
+const formatDay = new Intl.DateTimeFormat(undefined, {
   day: "numeric",
   month: "short",
   timeZone: "UTC",
 });
-const formatMonth = new Intl.DateTimeFormat("en", {
+const formatMonth = new Intl.DateTimeFormat(undefined, {
   month: "short",
   timeZone: "UTC",
 });
-const formatYear = new Intl.DateTimeFormat("en", {
+const formatYear = new Intl.DateTimeFormat(undefined, {
   year: "numeric",
   timeZone: "UTC",
 });
