@@ -28,8 +28,10 @@ import {
 import { utcMonth, utcWeek, utcYear } from "d3-time";
 
 interface LineGraphProps {
+  /** Points sorted by x ascending; x is a UTC timestamp in ms, step ≥ 1 day. */
   data: Point[];
-  xDomain: [number, number];
+  /** Visible x range [start, end] in ms. Default: the full data extent. */
+  xDomain?: [number, number];
   /** Tooltip value. Default: `Intl.NumberFormat` with up to 1 fraction digit. */
   formatValue?: (value: number) => string;
   /** Tooltip date. Default: day, short month and year in UTC, e.g. "Sep 24, 2026". */
@@ -140,6 +142,7 @@ export function LineGraphApi({
 }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
   const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
+  const [xMin, xMax] = xDomain ?? [data[0]?.x ?? 0, data.at(-1)?.x ?? 0];
   const defaults = useMemo(() => getDefaultFormatters(locale), [locale]);
   const format: Formatters = {
     formatValue: formatValue ?? defaults.formatValue,
@@ -160,7 +163,7 @@ export function LineGraphApi({
               data={data.length > 1 ? data : []}
               width={width}
               height={height - MARGIN.top - MARGIN.bottom}
-              xDomain={xDomain}
+              xDomain={[xMin, xMax]}
               overlay={overlay}
               format={format}
             ></LinePlot>
