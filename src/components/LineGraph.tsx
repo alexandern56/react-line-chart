@@ -5,6 +5,7 @@ import { curveMonotoneX, line } from "d3-shape";
 import { type Point } from "../types/chart";
 import { lttb } from "../utils/lttb";
 import { getMorphEndpoints, lerpPoints } from "../utils/morph";
+import { getSegments, yAt } from "../utils/curve";
 import {
   useEffect,
   useEffectEvent,
@@ -97,7 +98,7 @@ export function LineGraph({ data, xDomain }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
 
   return (
-    <svg ref={ref} className="size-full min-h-68.75">
+    <svg ref={ref} className="size-full min-h-68.75 touch-pan-y">
       {width > 0 && (
         <g transform={`translate(0,${MARGIN.top})`}>
           <LinePlot
@@ -161,10 +162,12 @@ function getRenderedPoints(
   return lerpPoints(from, to, progress);
 }
 
+const CURVE = curveMonotoneX;
+
 const linePath = line<Point>(
   (d) => d.x,
   (d) => d.y,
-).curve(curveMonotoneX);
+).curve(CURVE);
 
 function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
   const [targetXMin, targetXMax] = xDomain;
@@ -228,6 +231,8 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
   const progress = useMotionValue(0);
   const prevDataRef = useRef<Point[]>([]);
   const snapshot = useMotionValue<Point[]>([]);
+  const hoverX = useMotionValue(0);
+  const hoverOpacity = useMotionValue(0);
 
   const reduceMotion = useReducedMotion();
 
@@ -295,9 +300,9 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
     reduceMotion,
   ]);
 
-  const pathD = useTransform(() => {
+  const points = useTransform(() => {
     const domain: Domain = [xMin.get(), xMax.get(), yMin.get(), yMax.get()];
-    const points = getRenderedPoints(
+    return getRenderedPoints(
       data,
       domain,
       snapshot.get(),
@@ -305,8 +310,12 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
       width,
       height,
     );
-    return linePath(points) ?? "";
   });
+  const pathD = useTransform(() => linePath(points.get()) ?? "");
+  const segments = useTransform(() => getSegments(points.get(), CURVE));
+  const hoverY = useTransform(
+    () => yAt(segments.get(), hoverX.get()) ?? height,
+  );
 
   return (
     <>
@@ -352,6 +361,35 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
           )}
         </AnimatePresence>
       </g>
+      {data.length > 0 && (
+        <motion.g style={{ opacity: hoverOpacity }}>
+          <svg width={width} height={height}>
+            <motion.line
+              y2={height}
+              strokeDasharray="3 3"
+              style={{ x: hoverX, y: hoverY }}
+              className="stroke-black"
+            />
+          </svg>
+          <motion.circle
+            r={4}
+            style={{ x: hoverX, y: hoverY }}
+            className="fill-black"
+          />
+        </motion.g>
+      )}
+      <rect
+        width={width}
+        height={height}
+        pointerEvents="all"
+        className="fill-none"
+        onPointerMove={(e) => {
+          const { left } = e.currentTarget.getBoundingClientRect();
+          hoverX.set(Math.max(0, Math.min(width, e.clientX - left)));
+          hoverOpacity.set(1);
+        }}
+        onPointerLeave={() => hoverOpacity.set(0)}
+      />
     </>
   );
 }
