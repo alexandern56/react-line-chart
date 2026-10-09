@@ -1,5 +1,5 @@
 import { useElementSize } from "../hooks/useElementSize";
-import { scaleLinear, scaleUtc } from "d3-scale";
+import { scaleLinear, scaleUtc, type ScaleTime } from "d3-scale";
 import { extent, bisector, nice } from "d3-array";
 import { curveMonotoneX, line } from "d3-shape";
 import { type Point } from "../types/chart";
@@ -21,6 +21,7 @@ import {
   useTransform,
   type ValueAnimationTransition,
 } from "motion/react";
+import { utcDay, utcMonth, utcYear } from "d3-time";
 
 interface LineGraphProps {
   data: Point[];
@@ -29,8 +30,44 @@ interface LineGraphProps {
 
 const PX_PER_POINT = 3;
 const PX_PER_Y_TICK = 50;
+const PX_PER_X_TICK = 70;
 
 const MARGIN = { top: 15, bottom: 35 };
+
+const formatDay = new Intl.DateTimeFormat("en", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+const formatMonth = new Intl.DateTimeFormat("en", {
+  month: "short",
+  timeZone: "UTC",
+});
+const formatYear = new Intl.DateTimeFormat("en", {
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+function formatXTick(date: Date) {
+  if (utcMonth(date) < date) return formatDay.format(date);
+  if (utcYear(date) < date) return formatMonth.format(date);
+  return formatYear.format(date);
+}
+function getXTicks(scale: ScaleTime<number, number>, width: number) {
+  const [start, end] = scale.domain();
+  const maxTicks = Math.min(
+    Math.floor(width / PX_PER_X_TICK),
+    utcDay.count(start, end),
+  );
+  for (let count = maxTicks; count > 1; count--) {
+    const ticks = scale.ticks(count);
+    const gap =
+      (scale(ticks[ticks.length - 1]) - scale(ticks[0])) / (ticks.length - 1);
+    if (ticks.length < 2 || gap >= PX_PER_X_TICK) return ticks;
+  }
+  return scale.ticks(1);
+}
+
 export function LineGraph({ data, xDomain }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
 
@@ -120,9 +157,20 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
     () => scaleLinear().domain([targetYMin, targetYMax]).range([height, 0]),
     [targetYMin, targetYMax, height],
   );
+
   const yTicks = targetYScale.ticks(
     Math.max(2, Math.floor(height / PX_PER_Y_TICK)),
   );
+
+  const targetXScale = useMemo(
+    () => scaleUtc().domain([targetXMin, targetXMax]).range([0, width]),
+    [targetXMin, targetXMax, width],
+  );
+
+  const xTicks = getXTicks(targetXScale, width).filter((tick) => {
+    const x = targetXScale(tick);
+    return x >= PX_PER_X_TICK / 2 && x <= width - PX_PER_X_TICK / 2;
+  });
 
   const xMin = useMotionValue(targetXMin);
   const xMax = useMotionValue(targetXMax);
@@ -133,6 +181,15 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
   const snapshot = useMotionValue<Point[]>([]);
 
   const reduceMotion = useReducedMotion();
+
+  const labelsFade = {
+    initial: { opacity: 0 },
+    animate: {
+      opacity: 1,
+      transition: { duration: 0.4, delay: reduceMotion ? 0 : 0.6 },
+    },
+    exit: { opacity: 0, transition: { duration: 0.4 } },
+  };
 
   const startMorph = useEffectEvent((nextData: Point[]) => {
     const domain: Domain = [xMin.get(), xMax.get(), yMin.get(), yMax.get()];
@@ -213,15 +270,7 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
       ></motion.path>
       <AnimatePresence>
         {data.length > 0 && (
-          <motion.g
-            key={`${targetYMin}:${targetYMax}`}
-            initial={{ opacity: 0 }}
-            animate={{
-              opacity: 1,
-              transition: { duration: 0.4, delay: reduceMotion ? 0 : 0.6 },
-            }}
-            exit={{ opacity: 0, transition: { duration: 0.4 } }}
-          >
+          <motion.g key={`${targetYMin}:${targetYMax}`} {...labelsFade}>
             {yTicks.map((tick) => (
               <text
                 key={tick}
@@ -230,6 +279,22 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
                 dominantBaseline="middle"
               >
                 {tick}
+              </text>
+            ))}
+          </motion.g>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {data.length > 0 && (
+          <motion.g key={`${targetXMin}:${targetXMax}`} {...labelsFade}>
+            {xTicks.map((tick) => (
+              <text
+                key={tick.getTime()}
+                x={targetXScale(tick)}
+                y={height + 20}
+                textAnchor="middle"
+              >
+                {formatXTick(tick)}
               </text>
             ))}
           </motion.g>
