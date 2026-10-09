@@ -66,6 +66,7 @@ const PX_PER_Y_TICK = 50;
 const X_LABEL_GAP = 24;
 const Y_LABEL_X = 15;
 const Y_LABEL_DY = -4;
+const GLOW_RADIUS = 350;
 
 const MARGIN = { top: 15, bottom: 35 };
 
@@ -460,6 +461,7 @@ function LinePlot({
   const hoverY = useTransform(
     () => yAt(segments.get(), hoverX.get()) ?? height,
   );
+  const glowEdge = useTransform(hoverOpacity, [0, 1], [1, 0.2]);
   const getHoveredIndex = () => {
     const time = Math.round(
       xMin.get() + (hoverX.get() / width) * (xMax.get() - xMin.get()),
@@ -533,10 +535,28 @@ function LinePlot({
         <motion.path d={areaD} fill={`url(#${uid}-area)`} {...curveFade} />
       </svg>
       <svg width={width} height={height}>
+        <defs>
+          <motion.radialGradient
+            id={`${uid}-glow`}
+            gradientUnits="userSpaceOnUse"
+            cx={hoverX}
+            cy={hoverY}
+            r={GLOW_RADIUS}
+          >
+            <stop offset="0%" stopColor="var(--chart-1)" />
+            <motion.stop
+              offset="100%"
+              stopColor="var(--chart-1)"
+              stopOpacity={glowEdge}
+              className="transition-[stop-opacity] duration-250"
+            />
+          </motion.radialGradient>
+        </defs>
         <motion.path
           d={pathD}
+          stroke={`url(#${uid}-glow)`}
           {...curveFade}
-          className="fill-none stroke-chart-1 stroke-1"
+          className="fill-none stroke-1"
         ></motion.path>
       </svg>
       <AnimatePresence>
