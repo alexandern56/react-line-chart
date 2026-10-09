@@ -1,6 +1,6 @@
 import { bisector } from "d3-array";
 import { line, type CurveFactory } from "d3-shape";
-import type { Point } from "../types/chart";
+import type { Point } from "./types";
 
 type Segment = [p0: Point, c1: Point, c2: Point, p1: Point];
 

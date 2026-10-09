@@ -1,6 +1,8 @@
-import { LineGraph } from "./LineGraph";
-import { ChartRangeSwitch } from "./ChartRangeSwitch";
-import { ChartStatus } from "./ChartStatus";
+"use client";
+
+import { LineGraph } from "./line-graph";
+import { ChartRangeSwitch } from "./range-switch";
+import { ChartStatus } from "./chart-status";
 import {
   Card,
   CardAction,
@@ -8,9 +10,9 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "./ui/card";
-import { useLineChart } from "../hooks/useLineChart";
-import type { Point } from "../types/chart";
+} from "@/components/ui/card";
+import { useLineChart } from "./hooks/use-line-chart";
+import type { Point } from "./lib/types";
 
 export function LineChart({ data }: { data: Point[] | undefined }) {
   const chart = useLineChart(data, "1M");

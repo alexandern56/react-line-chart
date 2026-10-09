@@ -1,7 +1,11 @@
 import { LineGraphLegacy } from "./LineGraphLegacy";
-import type { Point, ChartRange } from "../types/chart";
-import { CHART_RANGES } from "../constants/chart";
-import { getRangeDomain, isRangeAvailable } from "../utils/chart";
+import type { Point } from "./line-chart/lib/types";
+import {
+  CHART_RANGES,
+  getRangeDomain,
+  isRangeAvailable,
+  type ChartRange,
+} from "./line-chart/lib/ranges";
 
 import { useId, useState } from "react";
 

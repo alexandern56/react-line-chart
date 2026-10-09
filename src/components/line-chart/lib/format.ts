@@ -1,5 +1,5 @@
 import { utcMonth, utcYear } from "d3-time";
-import type { Formatters } from "../types/chart";
+import type { Formatters } from "./types";
 
 export function getDefaultFormatters(locale?: string): Formatters {
   const day = new Intl.DateTimeFormat(locale, {

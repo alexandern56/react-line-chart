@@ -1,9 +1,9 @@
-import { useElementSize } from "../hooks/useElementSize";
+import { useElementSize } from "./line-chart/hooks/use-element-size";
 import { scaleLinear, scaleUtc } from "d3-scale";
 import { extent } from "d3-array";
 import { line } from "d3-shape";
-import { type Point } from "../types/chart";
-import { lttb } from "../utils/lttb";
+import { type Point } from "./line-chart/lib/types";
+import { lttb } from "./line-chart/lib/lttb";
 import { useMemo } from "react";
 
 interface LineGraphBasicProps {

@@ -1,8 +1,8 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ScaleTime } from "d3-scale";
-import { Y_LABEL_X } from "../constants/chart";
-import type { Formatters } from "../types/chart";
-import { getXTicks, measureText } from "../utils/ticks";
+import { Y_LABEL_X } from "../lib/constants";
+import type { Formatters } from "../lib/types";
+import { getXTicks, measureText } from "../lib/ticks";
 
 interface AxisLabelsOptions extends Pick<
   Formatters,

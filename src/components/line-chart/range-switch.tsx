@@ -1,7 +1,8 @@
+"use client";
+
 import { useId } from "react";
-import { CHART_RANGES } from "../constants/chart";
-import { cn } from "../lib/utils";
-import type { ChartRange } from "../types/chart";
+import { cn } from "@/lib/utils";
+import { CHART_RANGES, type ChartRange } from "./lib/ranges";
 
 interface ChartRangeSwitchProps {
   value: ChartRange;

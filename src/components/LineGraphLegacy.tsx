@@ -1,11 +1,11 @@
-import { useElementSize } from "../hooks/useElementSize";
+import { useElementSize } from "./line-chart/hooks/use-element-size";
 import { scaleLinear, scaleUtc, type ScaleTime } from "d3-scale";
 import { extent, bisector, nice } from "d3-array";
 import { curveMonotoneX, line } from "d3-shape";
-import { type Point } from "../types/chart";
-import { lttb } from "../utils/lttb";
-import { getMorphEndpoints, lerpPoints } from "../utils/morph";
-import { getSegments, yAt } from "../utils/curve";
+import { type Point } from "./line-chart/lib/types";
+import { lttb } from "./line-chart/lib/lttb";
+import { getMorphEndpoints, lerpPoints } from "./line-chart/lib/morph";
+import { getSegments, yAt } from "./line-chart/lib/curve";
 import {
   useEffect,
   useEffectEvent,

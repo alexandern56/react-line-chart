@@ -1,15 +1,17 @@
-import { useElementSize } from "../hooks/useElementSize";
-import { useAnimatedPoints } from "../hooks/useAnimatedPoints";
-import { useAxisLabels } from "../hooks/useAxisLabels";
-import { useChartHover } from "../hooks/useChartHover";
-import { cn } from "../lib/utils";
+"use client";
+
+import { useElementSize } from "./hooks/use-element-size";
+import { useAnimatedPoints } from "./hooks/use-animated-points";
+import { useAxisLabels } from "./hooks/use-axis-labels";
+import { useChartHover } from "./hooks/use-chart-hover";
+import { cn } from "@/lib/utils";
 import { scaleLinear, scaleUtc } from "d3-scale";
 import { min, pairs } from "d3-array";
 import { area, line } from "d3-shape";
-import { CURVE, NO_DATA, TRANSITION, Y_LABEL_X } from "../constants/chart";
-import type { Formatters, Point } from "../types/chart";
-import { getYDomain, sliceByDomain } from "../utils/chart";
-import { getDefaultFormatters } from "../utils/format";
+import { CURVE, NO_DATA, TRANSITION, Y_LABEL_X } from "./lib/constants";
+import type { Formatters, Point } from "./lib/types";
+import { getYDomain, sliceByDomain } from "./lib/domain";
+import { getDefaultFormatters } from "./lib/format";
 import {
   useId,
   useMemo,

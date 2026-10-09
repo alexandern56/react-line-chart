@@ -1,4 +1,4 @@
-import { type Point } from "../types/chart";
+import { type Point } from "./types";
 
 /**
  * Largest-Triangle-Three-Buckets (LTTB)

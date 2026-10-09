@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { NO_DATA } from "../constants/chart";
-import type { ChartRange, Point } from "../types/chart";
+import { NO_DATA } from "../lib/constants";
+import type { Point } from "../lib/types";
 import {
   getDataStatus,
   getRangeDomain,
   isRangeAvailable,
-} from "../utils/chart";
+  type ChartRange,
+} from "../lib/ranges";
 
 export function useLineChart(
   data: Point[] | undefined,

@@ -1,5 +1,5 @@
 import { curveLinear, type CurveFactory } from "d3-shape";
-import type { Point } from "../types/chart";
+import type { Point } from "./types";
 import { getSegments, yAt } from "./curve";
 
 function lerpPoint(a: Point, b: Point, t: number): Point {

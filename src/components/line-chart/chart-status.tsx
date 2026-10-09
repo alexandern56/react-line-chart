@@ -1,14 +1,14 @@
 import { ChartLine } from "lucide-react";
-import { cn } from "../lib/utils";
-import type { DataStatus } from "../types/chart";
+import { cn } from "@/lib/utils";
+import type { DataStatus } from "./lib/ranges";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "./ui/empty";
-import { Spinner } from "./ui/spinner";
+} from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
 
 const STATES: Record<DataStatus, { title: string; description: string }> = {
   loading: {

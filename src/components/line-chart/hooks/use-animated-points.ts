@@ -1,11 +1,11 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import { scaleLinear, scaleUtc } from "d3-scale";
 import { animate, useMotionValue, useTransform } from "motion/react";
-import { CURVE, TRANSITION } from "../constants/chart";
-import type { Point } from "../types/chart";
-import { sliceByDomain } from "../utils/chart";
-import { lttb } from "../utils/lttb";
-import { getMorphEndpoints, lerpPoints } from "../utils/morph";
+import { CURVE, TRANSITION } from "../lib/constants";
+import type { Point } from "../lib/types";
+import { sliceByDomain } from "../lib/domain";
+import { lttb } from "../lib/lttb";
+import { getMorphEndpoints, lerpPoints } from "../lib/morph";
 
 type Domain = [xMin: number, xMax: number, yMin: number, yMax: number];
 

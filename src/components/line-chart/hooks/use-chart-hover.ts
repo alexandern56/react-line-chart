@@ -5,13 +5,12 @@ import {
   type PointerEvent,
 } from "react";
 import type { ScaleTime } from "d3-scale";
-import { bisector } from "d3-array";
 import { useMotionValue, useTransform, type MotionValue } from "motion/react";
-import { CURVE } from "../constants/chart";
-import type { Formatters, Point } from "../types/chart";
-import { getSegments, yAt } from "../utils/curve";
+import { CURVE } from "../lib/constants";
+import { bisectX } from "../lib/domain";
+import type { Formatters, Point } from "../lib/types";
+import { getSegments, yAt } from "../lib/curve";
 
-const bisectX = bisector<Point, number>((d) => d.x);
 const KEY_STEP: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
 
 interface ChartHoverOptions extends Pick<
