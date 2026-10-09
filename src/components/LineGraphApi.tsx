@@ -67,6 +67,7 @@ const X_LABEL_GAP = 24;
 const Y_LABEL_X = 15;
 const Y_LABEL_DY = -4;
 const GLOW_RADIUS = 600;
+const LINE_CLIP_PAD = 2;
 
 const MARGIN = { top: 15, bottom: 35 };
 
@@ -534,7 +535,12 @@ function LinePlot({
         </defs>
         <motion.path d={areaD} fill={`url(#${uid}-area)`} {...curveFade} />
       </svg>
-      <svg width={width} height={height}>
+      <svg
+        y={-LINE_CLIP_PAD}
+        width={width}
+        height={height + 2 * LINE_CLIP_PAD}
+        viewBox={`0 ${-LINE_CLIP_PAD} ${width} ${height + 2 * LINE_CLIP_PAD}`}
+      >
         <defs>
           <motion.radialGradient
             id={`${uid}-glow`}
