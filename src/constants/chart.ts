@@ -3,7 +3,9 @@ import type { ChartRange } from "../types/chart";
 
 export const CHART_RANGES = ["1W", "2W", "1M", "6M", "1Y", "All"] as const;
 
-export const MIN_DATA_POINTS = 4;
+export const MIN_LINE_POINTS = 2;
+
+export const MIN_RANGE_POINTS = 4;
 
 export const RANGE_START: Record<
   Exclude<ChartRange, "All">,

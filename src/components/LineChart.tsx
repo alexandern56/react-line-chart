@@ -16,16 +16,13 @@ import {
 } from "./ui/empty";
 import { Spinner } from "./ui/spinner";
 import type { Point, ChartRange } from "../types/chart";
-import { CHART_RANGES, MIN_DATA_POINTS } from "../constants/chart";
-import { getRangeDomain } from "../utils/chart";
+import { CHART_RANGES, MIN_LINE_POINTS } from "../constants/chart";
+import { getRangeDomain, isRangeAvailable } from "../utils/chart";
 
-import { bisector } from "d3-array";
 import { ChartLine } from "lucide-react";
 import { useId, useState } from "react";
 
-const bisectX = bisector<Point, number>((d) => d.x);
 const NO_DATA: Point[] = [];
-const MIN_LINE_POINTS = 2;
 
 type Status = "loading" | "empty" | "notEnough";
 
@@ -49,16 +46,6 @@ function getStatus(data: Point[] | undefined): Status | null {
   if (data.length === 0) return "empty";
   if (data.length < MIN_LINE_POINTS) return "notEnough";
   return null;
-}
-
-function isRangeAvailable(range: ChartRange, data: Point[]) {
-  if (range === "All") return data.length >= MIN_LINE_POINTS;
-  if (data.length === 0) return false;
-  const [start, end] = getRangeDomain(range, data);
-  if (start < data[0].x) return false;
-  return (
-    bisectX.right(data, end) - bisectX.left(data, start) >= MIN_DATA_POINTS
-  );
 }
 
 export function LineChart({ data }: { data: Point[] | undefined }) {

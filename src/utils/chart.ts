@@ -1,10 +1,21 @@
+import { bisector } from "d3-array";
 import type { ChartRange, Point } from "../types/chart";
-import { RANGE_START, MIN_DATA_POINTS } from "../constants/chart";
+import {
+  MIN_LINE_POINTS,
+  MIN_RANGE_POINTS,
+  RANGE_START,
+} from "../constants/chart";
+
+const bisectX = bisector<Point, number>((d) => d.x);
 
 export function isRangeAvailable(range: ChartRange, data: Point[]) {
-  if (data.length < MIN_DATA_POINTS) return false;
-  const [start] = getRangeDomain(range, data);
-  return start >= data[0].x;
+  if (range === "All") return data.length >= MIN_LINE_POINTS;
+  if (data.length === 0) return false;
+  const [start, end] = getRangeDomain(range, data);
+  if (start < data[0].x) return false;
+  return (
+    bisectX.right(data, end) - bisectX.left(data, start) >= MIN_RANGE_POINTS
+  );
 }
 
 export function getRangeDomain(
