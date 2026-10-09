@@ -30,7 +30,24 @@ import { utcMonth, utcWeek, utcYear } from "d3-time";
 interface LineGraphProps {
   data: Point[];
   xDomain: [number, number];
+  /** Tooltip value. Default: `Intl.NumberFormat` with up to 1 fraction digit. */
+  formatValue?: (value: number) => string;
+  /** Tooltip date. Default: day, short month and year in UTC, e.g. "Sep 24, 2026". */
+  formatDate?: (date: Date) => string;
+  /** Y axis label, also used to measure it. Default: `Intl.NumberFormat`. */
+  formatYTick?: (value: number) => string;
+  /** X axis label, also used to measure it. Default: day, month or year in UTC, depending on the tick. */
+  formatXTick?: (date: Date) => string;
+  /** BCP 47 locale for the default formatters, e.g. "de-DE". Default: the runtime locale. */
+  locale?: string;
 }
+
+type Formatters = Required<
+  Pick<
+    LineGraphProps,
+    "formatValue" | "formatDate" | "formatYTick" | "formatXTick"
+  >
+>;
 
 const PX_PER_POINT = 3;
 const PX_PER_Y_TICK = 50;
@@ -39,33 +56,39 @@ const Y_LABEL_X = 15;
 
 const MARGIN = { top: 15, bottom: 35 };
 
-const formatDay = new Intl.DateTimeFormat(undefined, {
-  day: "numeric",
-  month: "short",
-  timeZone: "UTC",
-});
-const formatMonth = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  timeZone: "UTC",
-});
-const formatYear = new Intl.DateTimeFormat(undefined, {
-  year: "numeric",
-  timeZone: "UTC",
-});
-const formatTooltipDate = new Intl.DateTimeFormat(undefined, {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "UTC",
-});
-const formatTooltipValue = new Intl.NumberFormat(undefined, {
-  maximumFractionDigits: 1,
-});
+function getDefaultFormatters(locale?: string): Formatters {
+  const day = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+  const month = new Intl.DateTimeFormat(locale, {
+    month: "short",
+    timeZone: "UTC",
+  });
+  const year = new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  const date = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  const value = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
+  const tick = new Intl.NumberFormat(locale);
 
-function formatXTick(date: Date) {
-  if (utcMonth(date) < date) return formatDay.format(date);
-  if (utcYear(date) < date) return formatMonth.format(date);
-  return formatYear.format(date);
+  return {
+    formatValue: value.format,
+    formatDate: date.format,
+    formatYTick: tick.format,
+    formatXTick: (d) => {
+      if (utcMonth(d) < d) return day.format(d);
+      if (utcYear(d) < d) return month.format(d);
+      return year.format(d);
+    },
+  };
 }
 let measureContext: CanvasRenderingContext2D | null = null;
 
@@ -78,7 +101,7 @@ function measureText(text: string, font: string) {
 function getXTicks(
   scale: ScaleTime<number, number>,
   width: number,
-  font: string,
+  labelWidth: (tick: Date) => number,
   isVisible: (tick: Date) => boolean,
   dataStep: number,
 ) {
@@ -86,10 +109,7 @@ function getXTicks(
     if (ticks.length < 2) return true;
     const gap =
       (scale(ticks[ticks.length - 1]) - scale(ticks[0])) / (ticks.length - 1);
-    const labelWidth = Math.max(
-      ...ticks.map((tick) => measureText(formatXTick(tick), font)),
-    );
-    return gap >= labelWidth + X_LABEL_GAP;
+    return gap >= Math.max(...ticks.map(labelWidth)) + X_LABEL_GAP;
   };
 
   const [start, end] = scale.domain();
@@ -109,9 +129,24 @@ function getXTicks(
     : [];
 }
 
-export function LineGraphApi({ data, xDomain }: LineGraphProps) {
+export function LineGraphApi({
+  data,
+  xDomain,
+  formatValue,
+  formatDate,
+  formatYTick,
+  formatXTick,
+  locale,
+}: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
   const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
+  const defaults = useMemo(() => getDefaultFormatters(locale), [locale]);
+  const format: Formatters = {
+    formatValue: formatValue ?? defaults.formatValue,
+    formatDate: formatDate ?? defaults.formatDate,
+    formatYTick: formatYTick ?? defaults.formatYTick,
+    formatXTick: formatXTick ?? defaults.formatXTick,
+  };
 
   return (
     <div className="relative size-full min-h-68.75">
@@ -127,6 +162,7 @@ export function LineGraphApi({ data, xDomain }: LineGraphProps) {
               height={height - MARGIN.top - MARGIN.bottom}
               xDomain={xDomain}
               overlay={overlay}
+              format={format}
             ></LinePlot>
           </g>
         )}
@@ -146,6 +182,7 @@ interface LinePlotProps {
   height: number;
   xDomain: [number, number];
   overlay: HTMLDivElement | null;
+  format: Formatters;
 }
 
 const bisectX = bisector<Point, number>((d) => d.x);
@@ -197,7 +234,15 @@ const linePath = line<Point>(
   (d) => d.y,
 ).curve(CURVE);
 
-function LinePlot({ data, width, height, xDomain, overlay }: LinePlotProps) {
+function LinePlot({
+  data,
+  width,
+  height,
+  xDomain,
+  overlay,
+  format,
+}: LinePlotProps) {
+  const { formatValue, formatDate, formatYTick, formatXTick } = format;
   const [targetXMin, targetXMax] = xDomain;
   const yTickCount = Math.max(2, Math.floor(height / PX_PER_Y_TICK));
 
@@ -249,14 +294,26 @@ function LinePlot({ data, width, height, xDomain, overlay }: LinePlotProps) {
     if (xLabelFont === null) return [];
     const yLabelsRight =
       Y_LABEL_X +
-      Math.max(...yTicks.map((tick) => measureText(String(tick), xLabelFont)));
+      Math.max(
+        ...yTicks.map((tick) => measureText(formatYTick(tick), xLabelFont)),
+      );
+    const labelWidth = (tick: Date) =>
+      measureText(formatXTick(tick), xLabelFont);
     const isVisible = (tick: Date) => {
       const x = targetXScale(tick);
-      const halfLabel = measureText(formatXTick(tick), xLabelFont) / 2;
+      const halfLabel = labelWidth(tick) / 2;
       return x - halfLabel >= yLabelsRight && x + halfLabel <= width;
     };
-    return getXTicks(targetXScale, width, xLabelFont, isVisible, dataStep);
-  }, [targetXScale, width, xLabelFont, yTicks, dataStep]);
+    return getXTicks(targetXScale, width, labelWidth, isVisible, dataStep);
+  }, [
+    targetXScale,
+    width,
+    xLabelFont,
+    yTicks,
+    dataStep,
+    formatYTick,
+    formatXTick,
+  ]);
 
   const xMin = useMotionValue(targetXMin);
   const xMax = useMotionValue(targetXMax);
@@ -357,10 +414,10 @@ function LinePlot({ data, width, height, xDomain, overlay }: LinePlotProps) {
     return data.at(Math.max(0, bisectX.right(data, time) - 1));
   });
   const hoveredDate = useTransform(hoveredPoint, (p) =>
-    p ? formatTooltipDate.format(p.x) : "",
+    p ? formatDate(new Date(p.x)) : "",
   );
   const hoveredValue = useTransform(hoveredPoint, (p) =>
-    p ? formatTooltipValue.format(p.y) : "",
+    p ? formatValue(p.y) : "",
   );
 
   const showHover = (e: PointerEvent<SVGRectElement>) => {
@@ -397,7 +454,7 @@ function LinePlot({ data, width, height, xDomain, overlay }: LinePlotProps) {
                 y={targetYScale(tick)}
                 dominantBaseline="middle"
               >
-                {tick}
+                {formatYTick(tick)}
               </text>
             ))}
           </motion.g>
