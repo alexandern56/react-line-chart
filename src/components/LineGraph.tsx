@@ -98,7 +98,10 @@ export function LineGraph({ data, xDomain }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
 
   return (
-    <svg ref={ref} className="size-full min-h-68.75 touch-pan-y">
+    <svg
+      ref={ref}
+      className="size-full min-h-68.75 touch-pan-y overflow-visible"
+    >
       {width > 0 && (
         <g transform={`translate(0,${MARGIN.top})`}>
           <LinePlot
@@ -319,13 +322,15 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
 
   return (
     <>
-      <motion.path
-        d={pathD}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: data.length > 0 ? 1 : 0 }}
-        transition={TRANSITION}
-        className="fill-none stroke-black stroke-1"
-      ></motion.path>
+      <svg width={width} height={height}>
+        <motion.path
+          d={pathD}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: data.length > 0 ? 1 : 0 }}
+          transition={TRANSITION}
+          className="fill-none stroke-black stroke-1"
+        ></motion.path>
+      </svg>
       <AnimatePresence>
         {data.length > 0 && (
           <motion.g key={`${targetYMin}:${targetYMax}`} {...labelsFade}>
@@ -372,7 +377,7 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
             />
           </svg>
           <motion.circle
-            r={4}
+            r={6}
             style={{ x: hoverX, y: hoverY }}
             className="fill-black"
           />
