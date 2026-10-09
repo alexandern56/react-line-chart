@@ -52,6 +52,7 @@ function getStatus(data: Point[] | undefined): Status | null {
 }
 
 function isRangeAvailable(range: ChartRange, data: Point[]) {
+  if (range === "All") return data.length >= MIN_LINE_POINTS;
   if (data.length === 0) return false;
   const [start, end] = getRangeDomain(range, data);
   if (start < data[0].x) return false;
