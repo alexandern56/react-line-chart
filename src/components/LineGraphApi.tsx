@@ -66,7 +66,7 @@ const PX_PER_Y_TICK = 50;
 const X_LABEL_GAP = 24;
 const Y_LABEL_X = 15;
 const Y_LABEL_DY = -4;
-const GLOW_RADIUS = 350;
+const GLOW_RADIUS = 600;
 
 const MARGIN = { top: 15, bottom: 35 };
 
@@ -528,8 +528,8 @@ function LinePlot({
       <svg width={width} height={height + MARGIN.bottom}>
         <defs>
           <linearGradient id={`${uid}-area`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.8} />
-            <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.1} />
+            <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.02} />
           </linearGradient>
         </defs>
         <motion.path d={areaD} fill={`url(#${uid}-area)`} {...curveFade} />
@@ -556,7 +556,7 @@ function LinePlot({
           d={pathD}
           stroke={`url(#${uid}-glow)`}
           {...curveFade}
-          className="fill-none stroke-1"
+          className="stroke-1.5 fill-none"
         ></motion.path>
       </svg>
       <AnimatePresence>
@@ -601,11 +601,11 @@ function LinePlot({
               y2={height}
               strokeDasharray="3 3"
               style={{ x: hoverX, y: hoverY }}
-              className="stroke-border"
+              className="stroke-chart-1"
             />
           </svg>
           <motion.circle
-            r={4}
+            r={5}
             style={{ x: hoverX, y: hoverY }}
             className="fill-chart-1"
           />
