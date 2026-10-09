@@ -4,3 +4,4 @@ export type Point = {
   y: number;
 };
 export type ChartRange = (typeof CHART_RANGES)[number];
+export type DataStatus = "loading" | "empty" | "notEnough";

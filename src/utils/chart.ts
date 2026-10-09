@@ -1,5 +1,5 @@
 import { bisector } from "d3-array";
-import type { ChartRange, Point } from "../types/chart";
+import type { ChartRange, DataStatus, Point } from "../types/chart";
 import {
   MIN_LINE_POINTS,
   MIN_RANGE_POINTS,
@@ -7,6 +7,13 @@ import {
 } from "../constants/chart";
 
 const bisectX = bisector<Point, number>((d) => d.x);
+
+export function getDataStatus(data: Point[] | undefined): DataStatus | null {
+  if (data === undefined) return "loading";
+  if (data.length === 0) return "empty";
+  if (data.length < MIN_LINE_POINTS) return "notEnough";
+  return null;
+}
 
 export function isRangeAvailable(range: ChartRange, data: Point[]) {
   if (range === "All") return data.length >= MIN_LINE_POINTS;
