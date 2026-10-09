@@ -11,6 +11,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import {
   animate,
@@ -30,7 +31,7 @@ interface LineGraphProps {
 
 const PX_PER_POINT = 3;
 const PX_PER_Y_TICK = 50;
-const PX_PER_X_TICK = 70;
+const X_LABEL_GAP = 24;
 
 const MARGIN = { top: 15, bottom: 35 };
 
@@ -53,19 +54,38 @@ function formatXTick(date: Date) {
   if (utcYear(date) < date) return formatMonth.format(date);
   return formatYear.format(date);
 }
-function getXTicks(scale: ScaleTime<number, number>, width: number) {
-  const [start, end] = scale.domain();
-  const maxTicks = Math.min(
-    Math.floor(width / PX_PER_X_TICK),
-    utcDay.count(start, end),
-  );
-  for (let count = maxTicks; count > 1; count--) {
-    const ticks = scale.ticks(count);
+let measureContext: CanvasRenderingContext2D | null = null;
+
+function measureText(text: string, font: string) {
+  measureContext ??= document.createElement("canvas").getContext("2d")!;
+  measureContext.font = font;
+  return measureContext.measureText(text).width;
+}
+
+function getXTicks(
+  scale: ScaleTime<number, number>,
+  width: number,
+  font: string,
+) {
+  const fits = (ticks: Date[]) => {
+    if (ticks.length < 2) return true;
     const gap =
       (scale(ticks[ticks.length - 1]) - scale(ticks[0])) / (ticks.length - 1);
-    if (ticks.length < 2 || gap >= PX_PER_X_TICK) return ticks;
+    const labelWidth = Math.max(
+      ...ticks.map((tick) => measureText(formatXTick(tick), font)),
+    );
+    return gap >= labelWidth + X_LABEL_GAP;
+  };
+
+  const [start, end] = scale.domain();
+  let lo = 1;
+  let hi = Math.min(Math.floor(width / X_LABEL_GAP), utcDay.count(start, end));
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (fits(scale.ticks(mid))) lo = mid;
+    else hi = mid - 1;
   }
-  return scale.ticks(1);
+  return scale.ticks(lo);
 }
 
 export function LineGraph({ data, xDomain }: LineGraphProps) {
@@ -167,10 +187,29 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
     [targetXMin, targetXMax, width],
   );
 
-  const xTicks = getXTicks(targetXScale, width).filter((tick) => {
-    const x = targetXScale(tick);
-    return x >= PX_PER_X_TICK / 2 && x <= width - PX_PER_X_TICK / 2;
-  });
+  const xLabelProbeRef = useRef<SVGTextElement>(null);
+  const [xLabelFont, setXLabelFont] = useState<string | null>(null);
+
+  useLayoutEffect(() => {
+    const probe = xLabelProbeRef.current!;
+    const update = () => {
+      const s = getComputedStyle(probe);
+      setXLabelFont(
+        `${s.fontStyle} ${s.fontWeight} ${s.fontSize} ${s.fontFamily}`,
+      );
+    };
+    update();
+    document.fonts.ready.then(update);
+  }, []);
+
+  const xTicks = useMemo(() => {
+    if (xLabelFont === null) return [];
+    return getXTicks(targetXScale, width, xLabelFont).filter((tick) => {
+      const x = targetXScale(tick);
+      const halfLabel = measureText(formatXTick(tick), xLabelFont) / 2;
+      return x - halfLabel >= 0 && x + halfLabel <= width;
+    });
+  }, [targetXScale, width, xLabelFont]);
 
   const xMin = useMotionValue(targetXMin);
   const xMax = useMotionValue(targetXMax);
@@ -284,22 +323,25 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
           </motion.g>
         )}
       </AnimatePresence>
-      <AnimatePresence>
-        {data.length > 0 && (
-          <motion.g key={`${targetXMin}:${targetXMax}`} {...labelsFade}>
-            {xTicks.map((tick) => (
-              <text
-                key={tick.getTime()}
-                x={targetXScale(tick)}
-                y={height + 20}
-                textAnchor="middle"
-              >
-                {formatXTick(tick)}
-              </text>
-            ))}
-          </motion.g>
-        )}
-      </AnimatePresence>
+      <g>
+        <text ref={xLabelProbeRef} className="invisible" />
+        <AnimatePresence>
+          {data.length > 0 && (
+            <motion.g key={`${targetXMin}:${targetXMax}`} {...labelsFade}>
+              {xTicks.map((tick) => (
+                <text
+                  key={tick.getTime()}
+                  x={targetXScale(tick)}
+                  y={height + 20}
+                  textAnchor="middle"
+                >
+                  {formatXTick(tick)}
+                </text>
+              ))}
+            </motion.g>
+          )}
+        </AnimatePresence>
+      </g>
     </>
   );
 }
