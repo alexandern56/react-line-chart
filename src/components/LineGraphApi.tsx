@@ -1,4 +1,5 @@
 import { useElementSize } from "../hooks/useElementSize";
+import { cn } from "../lib/utils";
 import { scaleLinear, scaleUtc, type ScaleTime } from "d3-scale";
 import { extent, bisector, min, nice, pairs } from "d3-array";
 import { type Point } from "../types/chart";
@@ -42,6 +43,8 @@ interface LineGraphProps {
   formatXTick?: (date: Date) => string;
   /** BCP 47 locale for the default formatters, e.g. "de-DE". Default: the runtime locale. */
   locale?: string;
+  /** Classes for the root element. Default size: `h-68.75 w-full`. */
+  className?: string;
 }
 
 type Formatters = Required<
@@ -139,6 +142,7 @@ export function LineGraphApi({
   formatYTick,
   formatXTick,
   locale,
+  className,
 }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
   const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
@@ -152,7 +156,7 @@ export function LineGraphApi({
   };
 
   return (
-    <div className="relative size-full min-h-68.75">
+    <div className={cn("relative h-68.75 w-full", className)}>
       <svg
         ref={ref}
         className="absolute inset-0 size-full touch-pan-y overflow-visible"
