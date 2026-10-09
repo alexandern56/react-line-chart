@@ -234,15 +234,15 @@ function LinePlot({ data, width, height, xDomain, overlay }: LinePlotProps) {
   const [xLabelFont, setXLabelFont] = useState<string | null>(null);
 
   useLayoutEffect(() => {
-    const probe = xLabelProbeRef.current!;
-    const update = () => {
-      const s = getComputedStyle(probe);
-      setXLabelFont(
-        `${s.fontStyle} ${s.fontWeight} ${s.fontSize} ${s.fontFamily}`,
-      );
+    const s = getComputedStyle(xLabelProbeRef.current!);
+    const font = `${s.fontStyle} ${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
+    let active = true;
+    document.fonts.load(font).then(() => {
+      if (active) setXLabelFont(font);
+    });
+    return () => {
+      active = false;
     };
-    update();
-    document.fonts.ready.then(update);
   }, []);
 
   const xTicks = useMemo(() => {
