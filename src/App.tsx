@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LineChart } from "./components/LineChart";
+import { LineChartApi } from "./components/LineChartApi";
 import { LineGraphBasic } from "./components/LineGraphBasic.tsx";
 import { generateData } from "./generateData";
 
@@ -32,8 +33,21 @@ function App() {
       >
         Empty data
       </button>
+
+      <button
+        type="button"
+        className="self-start border px-2"
+        onClick={() => setData(generateData(1))}
+      >
+        1 data point
+      </button>
       <div className="border">
         <LineChart data={data}></LineChart>
+      </div>
+
+      <h2>Api</h2>
+      <div className="border">
+        <LineChartApi data={data}></LineChartApi>
       </div>
     </main>
   );
