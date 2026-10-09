@@ -1,8 +1,8 @@
 import { useElementSize } from "../hooks/useElementSize";
 import { scaleLinear, scaleUtc, type ScaleTime } from "d3-scale";
 import { extent, bisector, min, nice, pairs } from "d3-array";
-import { curveMonotoneX, line } from "d3-shape";
 import { type Point } from "../types/chart";
+import { curveMonotoneX, line } from "d3-shape";
 import { lttb } from "../utils/lttb";
 import { getMorphEndpoints, lerpPoints } from "../utils/morph";
 import { getSegments, yAt } from "../utils/curve";
@@ -122,7 +122,7 @@ export function LineGraphApi({ data, xDomain }: LineGraphProps) {
         {width > 0 && (
           <g transform={`translate(0,${MARGIN.top})`}>
             <LinePlot
-              data={data}
+              data={data.length > 1 ? data : []}
               width={width}
               height={height - MARGIN.top - MARGIN.bottom}
               xDomain={xDomain}
