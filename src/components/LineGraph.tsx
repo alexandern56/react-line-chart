@@ -13,6 +13,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type PointerEvent,
 } from "react";
 import {
   animate,
@@ -320,6 +321,17 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
     () => yAt(segments.get(), hoverX.get()) ?? height,
   );
 
+  const showHover = (e: PointerEvent<SVGRectElement>) => {
+    const { left } = e.currentTarget.getBoundingClientRect();
+    hoverX.set(Math.max(0, Math.min(width, e.clientX - left)));
+    hoverOpacity.set(1);
+  };
+
+  useEffect(
+    () => hoverOpacity.set(0),
+    [data, targetXMin, targetXMax, hoverOpacity],
+  );
+
   return (
     <>
       <svg width={width} height={height}>
@@ -386,14 +398,13 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
       <rect
         width={width}
         height={height}
-        pointerEvents="all"
-        className="fill-none"
-        onPointerMove={(e) => {
-          const { left } = e.currentTarget.getBoundingClientRect();
-          hoverX.set(Math.max(0, Math.min(width, e.clientX - left)));
-          hoverOpacity.set(1);
+        fill="transparent"
+        onPointerDown={showHover}
+        onPointerMove={showHover}
+        onPointerLeave={(e) => {
+          if (e.pointerType === "mouse") hoverOpacity.set(0);
         }}
-        onPointerLeave={() => hoverOpacity.set(0)}
+        onPointerCancel={() => hoverOpacity.set(0)}
       />
     </>
   );

@@ -26,9 +26,7 @@ export function getSegments(points: Point[], curve: CurveFactory): Segment[] {
       start = { x, y };
     },
     lineTo(x, y) {
-      const end = { x, y };
-      segments.push([start, start, end, end]);
-      start = end;
+      context.bezierCurveTo(start.x, start.y, x, y, x, y);
     },
     bezierCurveTo(c1x, c1y, c2x, c2y, x, y) {
       const end = { x, y };
