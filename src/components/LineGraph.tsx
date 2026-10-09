@@ -195,6 +195,7 @@ const linePath = line<Point>(
 
 function LinePlot({ data, width, height, xDomain, overlay }: LinePlotProps) {
   const [targetXMin, targetXMax] = xDomain;
+  const yTickCount = Math.max(2, Math.floor(height / PX_PER_Y_TICK));
 
   const [targetYMin, targetYMax] = useMemo(() => {
     const [lo = 0, hi = 0] = extent(
@@ -202,8 +203,8 @@ function LinePlot({ data, width, height, xDomain, overlay }: LinePlotProps) {
       (d) => d.y,
     );
     const pad = (hi - lo) * 0.15;
-    return nice(Math.max(0, lo - pad), hi + pad, 10);
-  }, [data, targetXMin, targetXMax]);
+    return nice(Math.max(0, lo - pad), hi + pad, yTickCount);
+  }, [data, targetXMin, targetXMax, yTickCount]);
 
   const targetYScale = useMemo(
     () => scaleLinear().domain([targetYMin, targetYMax]).range([height, 0]),
@@ -211,8 +212,8 @@ function LinePlot({ data, width, height, xDomain, overlay }: LinePlotProps) {
   );
 
   const yTicks = useMemo(
-    () => targetYScale.ticks(Math.max(2, Math.floor(height / PX_PER_Y_TICK))),
-    [targetYScale, height],
+    () => targetYScale.ticks(yTickCount),
+    [targetYScale, yTickCount],
   );
 
   const targetXScale = useMemo(
