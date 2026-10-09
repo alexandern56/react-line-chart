@@ -22,7 +22,7 @@ import {
   useTransform,
   type ValueAnimationTransition,
 } from "motion/react";
-import { utcDay, utcMonth, utcYear } from "d3-time";
+import { utcDay, utcMonth, utcWeek, utcYear } from "d3-time";
 
 interface LineGraphProps {
   data: Point[];
@@ -32,6 +32,7 @@ interface LineGraphProps {
 const PX_PER_POINT = 3;
 const PX_PER_Y_TICK = 50;
 const X_LABEL_GAP = 24;
+const Y_LABEL_X = 15;
 
 const MARGIN = { top: 15, bottom: 35 };
 
@@ -66,6 +67,7 @@ function getXTicks(
   scale: ScaleTime<number, number>,
   width: number,
   font: string,
+  isVisible: (tick: Date) => boolean,
 ) {
   const fits = (ticks: Date[]) => {
     if (ticks.length < 2) return true;
@@ -85,7 +87,10 @@ function getXTicks(
     if (fits(scale.ticks(mid))) lo = mid;
     else hi = mid - 1;
   }
-  return scale.ticks(lo);
+  const ticks = scale.ticks(lo).filter(isVisible);
+  if (ticks.length > 0) return ticks;
+  const biweekly = scale.ticks(utcWeek.every(2)!);
+  return fits(biweekly) ? biweekly.filter(isVisible) : [];
 }
 
 export function LineGraph({ data, xDomain }: LineGraphProps) {
@@ -178,8 +183,9 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
     [targetYMin, targetYMax, height],
   );
 
-  const yTicks = targetYScale.ticks(
-    Math.max(2, Math.floor(height / PX_PER_Y_TICK)),
+  const yTicks = useMemo(
+    () => targetYScale.ticks(Math.max(2, Math.floor(height / PX_PER_Y_TICK))),
+    [targetYScale, height],
   );
 
   const targetXScale = useMemo(
@@ -204,12 +210,16 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
 
   const xTicks = useMemo(() => {
     if (xLabelFont === null) return [];
-    return getXTicks(targetXScale, width, xLabelFont).filter((tick) => {
+    const yLabelsRight =
+      Y_LABEL_X +
+      Math.max(...yTicks.map((tick) => measureText(String(tick), xLabelFont)));
+    const isVisible = (tick: Date) => {
       const x = targetXScale(tick);
       const halfLabel = measureText(formatXTick(tick), xLabelFont) / 2;
-      return x - halfLabel >= 0 && x + halfLabel <= width;
-    });
-  }, [targetXScale, width, xLabelFont]);
+      return x - halfLabel >= yLabelsRight && x + halfLabel <= width;
+    };
+    return getXTicks(targetXScale, width, xLabelFont, isVisible);
+  }, [targetXScale, width, xLabelFont, yTicks]);
 
   const xMin = useMotionValue(targetXMin);
   const xMax = useMotionValue(targetXMax);
@@ -313,7 +323,7 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
             {yTicks.map((tick) => (
               <text
                 key={tick}
-                x={15}
+                x={Y_LABEL_X}
                 y={targetYScale(tick)}
                 dominantBaseline="middle"
               >
