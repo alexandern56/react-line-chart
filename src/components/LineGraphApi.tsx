@@ -1,6 +1,6 @@
 import { useElementSize } from "../hooks/useElementSize";
 import { scaleLinear, scaleUtc, type ScaleTime } from "d3-scale";
-import { extent, bisector, nice } from "d3-array";
+import { extent, bisector, min, nice, pairs } from "d3-array";
 import { curveMonotoneX, line } from "d3-shape";
 import { type Point } from "../types/chart";
 import { lttb } from "../utils/lttb";
@@ -25,7 +25,7 @@ import {
   useTransform,
   type ValueAnimationTransition,
 } from "motion/react";
-import { utcDay, utcMonth, utcWeek, utcYear } from "d3-time";
+import { utcMonth, utcWeek, utcYear } from "d3-time";
 
 interface LineGraphProps {
   data: Point[];
@@ -80,6 +80,7 @@ function getXTicks(
   width: number,
   font: string,
   isVisible: (tick: Date) => boolean,
+  dataStep: number,
 ) {
   const fits = (ticks: Date[]) => {
     if (ticks.length < 2) return true;
@@ -93,7 +94,8 @@ function getXTicks(
 
   const [start, end] = scale.domain();
   let lo = 1;
-  let hi = Math.min(Math.floor(width / X_LABEL_GAP), utcDay.count(start, end));
+  const maxTicks = (end.getTime() - start.getTime()) / dataStep;
+  let hi = Math.min(Math.floor(width / X_LABEL_GAP), Math.floor(maxTicks));
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2);
     if (fits(scale.ticks(mid))) lo = mid;
@@ -102,7 +104,9 @@ function getXTicks(
   const ticks = scale.ticks(lo).filter(isVisible);
   if (ticks.length > 0) return ticks;
   const biweekly = scale.ticks(utcWeek.every(2)!);
-  return fits(biweekly) ? biweekly.filter(isVisible) : [];
+  return fits(biweekly) && biweekly.length <= maxTicks
+    ? biweekly.filter(isVisible)
+    : [];
 }
 
 export function LineGraphApi({ data, xDomain }: LineGraphProps) {
@@ -221,6 +225,11 @@ function LinePlot({ data, width, height, xDomain, overlay }: LinePlotProps) {
     [targetXMin, targetXMax, width],
   );
 
+  const dataStep = useMemo(
+    () => min(pairs(data, (a, b) => b.x - a.x)) ?? Infinity,
+    [data],
+  );
+
   const xLabelProbeRef = useRef<SVGTextElement>(null);
   const [xLabelFont, setXLabelFont] = useState<string | null>(null);
 
@@ -246,8 +255,8 @@ function LinePlot({ data, width, height, xDomain, overlay }: LinePlotProps) {
       const halfLabel = measureText(formatXTick(tick), xLabelFont) / 2;
       return x - halfLabel >= yLabelsRight && x + halfLabel <= width;
     };
-    return getXTicks(targetXScale, width, xLabelFont, isVisible);
-  }, [targetXScale, width, xLabelFont, yTicks]);
+    return getXTicks(targetXScale, width, xLabelFont, isVisible, dataStep);
+  }, [targetXScale, width, xLabelFont, yTicks, dataStep]);
 
   const xMin = useMotionValue(targetXMin);
   const xMax = useMotionValue(targetXMax);
