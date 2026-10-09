@@ -8,10 +8,22 @@ import {
   CardTitle,
 } from "./ui/card";
 import type { Point, ChartRange } from "../types/chart";
-import { CHART_RANGES } from "../constants/chart";
-import { getRangeDomain, isRangeAvailable } from "../utils/chart";
+import { CHART_RANGES, MIN_DATA_POINTS } from "../constants/chart";
+import { getRangeDomain } from "../utils/chart";
 
+import { bisector } from "d3-array";
 import { useId, useState } from "react";
+
+const bisectX = bisector<Point, number>((d) => d.x);
+
+function isRangeAvailable(range: ChartRange, data: Point[]) {
+  if (data.length === 0) return false;
+  const [start, end] = getRangeDomain(range, data);
+  if (start < data[0].x) return false;
+  return (
+    bisectX.right(data, end) - bisectX.left(data, start) >= MIN_DATA_POINTS
+  );
+}
 
 export function LineChartApi({ data }: { data: Point[] }) {
   const uid = useId();
