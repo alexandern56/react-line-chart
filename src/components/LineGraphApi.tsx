@@ -257,7 +257,7 @@ function getRenderedPoints(
 ): Point[] {
   const target = getScreenPoints(data, domain, width, height, maxPoints);
   if (progress >= 1) return target;
-  const { from, to } = getMorphEndpoints(snapshot, target, height);
+  const { from, to } = getMorphEndpoints(snapshot, target, height, CURVE);
   return lerpPoints(from, to, progress);
 }
 
