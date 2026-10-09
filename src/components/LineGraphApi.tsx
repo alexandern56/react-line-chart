@@ -289,6 +289,10 @@ function LinePlot({
       sliceByDomain(data, targetXMin, targetXMax),
       (d) => d.y,
     );
+    if (lo === hi) {
+      const edge = 2 * lo || 1;
+      return nice(Math.min(0, edge), Math.max(0, edge), yTickCount);
+    }
     const pad = (hi - lo) * 0.15;
     return nice(
       lo >= 0 ? Math.max(0, lo - pad) : lo - pad,
