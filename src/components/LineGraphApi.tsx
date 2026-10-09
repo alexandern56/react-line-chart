@@ -497,16 +497,14 @@ function LinePlot({
         {data.length > 0 && (
           <motion.g key={`${targetYMin}:${targetYMax}`} {...labelsFade}>
             {yTicks.map((tick) => (
-              <g key={tick} transform={`translate(0,${targetYScale(tick)})`}>
-                <line
-                  x2={width}
-                  shapeRendering="crispEdges"
-                  className="stroke-border/50"
-                />
-                <text x={Y_LABEL_X} dy={Y_LABEL_DY}>
-                  {formatYTick(tick)}
-                </text>
-              </g>
+              <line
+                key={tick}
+                y1={targetYScale(tick)}
+                x2={width}
+                y2={targetYScale(tick)}
+                shapeRendering="crispEdges"
+                className="stroke-border/50"
+              />
             ))}
           </motion.g>
         )}
@@ -520,6 +518,22 @@ function LinePlot({
           className="fill-none stroke-chart-1 stroke-1"
         ></motion.path>
       </svg>
+      <AnimatePresence>
+        {data.length > 0 && (
+          <motion.g key={`${targetYMin}:${targetYMax}`} {...labelsFade}>
+            {yTicks.map((tick) => (
+              <text
+                key={tick}
+                x={Y_LABEL_X}
+                y={targetYScale(tick)}
+                dy={Y_LABEL_DY}
+              >
+                {formatYTick(tick)}
+              </text>
+            ))}
+          </motion.g>
+        )}
+      </AnimatePresence>
       <g>
         <text ref={xLabelProbeRef} className="invisible" />
         <AnimatePresence>
