@@ -64,6 +64,7 @@ const PX_PER_POINT = 3;
 const PX_PER_Y_TICK = 50;
 const X_LABEL_GAP = 24;
 const Y_LABEL_X = 15;
+const Y_LABEL_DY = -4;
 
 const MARGIN = { top: 15, bottom: 35 };
 
@@ -492,6 +493,24 @@ function LinePlot({
 
   return (
     <>
+      <AnimatePresence>
+        {data.length > 0 && (
+          <motion.g key={`${targetYMin}:${targetYMax}`} {...labelsFade}>
+            {yTicks.map((tick) => (
+              <g key={tick} transform={`translate(0,${targetYScale(tick)})`}>
+                <line
+                  x2={width}
+                  shapeRendering="crispEdges"
+                  className="stroke-border/50"
+                />
+                <text x={Y_LABEL_X} dy={Y_LABEL_DY}>
+                  {formatYTick(tick)}
+                </text>
+              </g>
+            ))}
+          </motion.g>
+        )}
+      </AnimatePresence>
       <svg width={width} height={height}>
         <motion.path
           d={pathD}
@@ -501,22 +520,6 @@ function LinePlot({
           className="fill-none stroke-chart-1 stroke-1"
         ></motion.path>
       </svg>
-      <AnimatePresence>
-        {data.length > 0 && (
-          <motion.g key={`${targetYMin}:${targetYMax}`} {...labelsFade}>
-            {yTicks.map((tick) => (
-              <text
-                key={tick}
-                x={Y_LABEL_X}
-                y={targetYScale(tick)}
-                dominantBaseline="middle"
-              >
-                {formatYTick(tick)}
-              </text>
-            ))}
-          </motion.g>
-        )}
-      </AnimatePresence>
       <g>
         <text ref={xLabelProbeRef} className="invisible" />
         <AnimatePresence>
