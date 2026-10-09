@@ -3,13 +3,14 @@ import { cn } from "../lib/utils";
 import { scaleLinear, scaleUtc, type ScaleTime } from "d3-scale";
 import { extent, bisector, min, nice, pairs } from "d3-array";
 import { type Point } from "../types/chart";
-import { curveMonotoneX, line } from "d3-shape";
+import { area, curveMonotoneX, line } from "d3-shape";
 import { lttb } from "../utils/lttb";
 import { getMorphEndpoints, lerpPoints } from "../utils/morph";
 import { getSegments, yAt } from "../utils/curve";
 import {
   useEffect,
   useEffectEvent,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -373,6 +374,12 @@ function LinePlot({
     exit: { opacity: 0, transition: { duration: 0.4 } },
   };
 
+  const curveFade = {
+    initial: { opacity: 0 },
+    animate: { opacity: data.length > 0 ? 1 : 0 },
+    transition: TRANSITION,
+  };
+
   const startMorph = useEffectEvent((nextData: Point[]) => {
     const domain: Domain = [xMin.get(), xMax.get(), yMin.get(), yMax.get()];
     snapshot.set(
@@ -442,6 +449,13 @@ function LinePlot({
     );
   });
   const pathD = useTransform(() => linePath(points.get()) ?? "");
+  const areaPath = area<Point>(
+    (d) => d.x,
+    height + MARGIN.bottom,
+    (d) => d.y,
+  ).curve(CURVE);
+  const areaD = useTransform(() => areaPath(points.get()) ?? "");
+  const uid = useId();
   const segments = useTransform(() => getSegments(points.get(), CURVE));
   const hoverY = useTransform(
     () => yAt(segments.get(), hoverX.get()) ?? height,
@@ -509,12 +523,19 @@ function LinePlot({
           </motion.g>
         )}
       </AnimatePresence>
+      <svg width={width} height={height + MARGIN.bottom}>
+        <defs>
+          <linearGradient id={`${uid}-area`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.8} />
+            <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.1} />
+          </linearGradient>
+        </defs>
+        <motion.path d={areaD} fill={`url(#${uid}-area)`} {...curveFade} />
+      </svg>
       <svg width={width} height={height}>
         <motion.path
           d={pathD}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: data.length > 0 ? 1 : 0 }}
-          transition={TRANSITION}
+          {...curveFade}
           className="fill-none stroke-chart-1 stroke-1"
         ></motion.path>
       </svg>
