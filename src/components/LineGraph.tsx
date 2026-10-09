@@ -15,6 +15,7 @@ import {
   useState,
   type PointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   animate,
   AnimatePresence,
@@ -50,6 +51,15 @@ const formatMonth = new Intl.DateTimeFormat(undefined, {
 const formatYear = new Intl.DateTimeFormat(undefined, {
   year: "numeric",
   timeZone: "UTC",
+});
+const formatTooltipDate = new Intl.DateTimeFormat(undefined, {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const formatTooltipValue = new Intl.NumberFormat(undefined, {
+  maximumFractionDigits: 1,
 });
 
 function formatXTick(date: Date) {
@@ -97,23 +107,32 @@ function getXTicks(
 
 export function LineGraph({ data, xDomain }: LineGraphProps) {
   const { ref, width, height } = useElementSize<SVGSVGElement>();
+  const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
 
   return (
-    <svg
-      ref={ref}
-      className="size-full min-h-68.75 touch-pan-y overflow-visible"
-    >
-      {width > 0 && (
-        <g transform={`translate(0,${MARGIN.top})`}>
-          <LinePlot
-            data={data}
-            width={width}
-            height={height - MARGIN.top - MARGIN.bottom}
-            xDomain={xDomain}
-          ></LinePlot>
-        </g>
-      )}
-    </svg>
+    <div className="relative size-full min-h-68.75">
+      <svg
+        ref={ref}
+        className="absolute inset-0 size-full touch-pan-y overflow-visible"
+      >
+        {width > 0 && (
+          <g transform={`translate(0,${MARGIN.top})`}>
+            <LinePlot
+              data={data}
+              width={width}
+              height={height - MARGIN.top - MARGIN.bottom}
+              xDomain={xDomain}
+              overlay={overlay}
+            ></LinePlot>
+          </g>
+        )}
+      </svg>
+      <div
+        ref={setOverlay}
+        className="pointer-events-none absolute inset-x-0"
+        style={{ top: MARGIN.top }}
+      />
+    </div>
   );
 }
 
@@ -122,6 +141,7 @@ interface LinePlotProps {
   width: number;
   height: number;
   xDomain: [number, number];
+  overlay: HTMLDivElement | null;
 }
 
 const bisectX = bisector<Point, number>((d) => d.x);
@@ -173,7 +193,7 @@ const linePath = line<Point>(
   (d) => d.y,
 ).curve(CURVE);
 
-function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
+function LinePlot({ data, width, height, xDomain, overlay }: LinePlotProps) {
   const [targetXMin, targetXMax] = xDomain;
 
   const [targetYMin, targetYMax] = useMemo(() => {
@@ -237,6 +257,7 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
   const snapshot = useMotionValue<Point[]>([]);
   const hoverX = useMotionValue(0);
   const hoverOpacity = useMotionValue(0);
+  const [isLeftHalf, setIsLeftHalf] = useState(true);
 
   const reduceMotion = useReducedMotion();
 
@@ -320,11 +341,24 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
   const hoverY = useTransform(
     () => yAt(segments.get(), hoverX.get()) ?? height,
   );
+  const hoveredPoint = useTransform(() => {
+    const time =
+      xMin.get() + (hoverX.get() / width) * (xMax.get() - xMin.get());
+    return data.at(Math.max(0, bisectX.right(data, time) - 1));
+  });
+  const hoveredDate = useTransform(hoveredPoint, (p) =>
+    p ? formatTooltipDate.format(p.x) : "",
+  );
+  const hoveredValue = useTransform(hoveredPoint, (p) =>
+    p ? formatTooltipValue.format(p.y) : "",
+  );
 
   const showHover = (e: PointerEvent<SVGRectElement>) => {
     const { left } = e.currentTarget.getBoundingClientRect();
-    hoverX.set(Math.max(0, Math.min(width, e.clientX - left)));
+    const x = Math.max(0, Math.min(width, e.clientX - left));
+    hoverX.set(x);
     hoverOpacity.set(1);
+    setIsLeftHalf(x < width / 2);
   };
 
   useEffect(
@@ -406,6 +440,22 @@ function LinePlot({ data, width, height, xDomain }: LinePlotProps) {
         }}
         onPointerCancel={() => hoverOpacity.set(0)}
       />
+      {overlay &&
+        data.length > 0 &&
+        createPortal(
+          <motion.div
+            style={{ x: hoverX, y: hoverY, opacity: hoverOpacity }}
+            className="absolute"
+          >
+            <div
+              className={`-translate-y-1/2 border bg-white px-2 py-1 text-xs whitespace-nowrap transition-transform duration-300 ${isLeftHalf ? "translate-x-3" : "-translate-x-[calc(100%+12px)]"}`}
+            >
+              <motion.div>{hoveredDate}</motion.div>
+              <motion.div>{hoveredValue}</motion.div>
+            </div>
+          </motion.div>,
+          overlay,
+        )}
     </>
   );
 }
