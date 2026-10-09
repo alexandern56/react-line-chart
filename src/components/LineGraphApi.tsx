@@ -550,7 +550,7 @@ function LinePlot({
             />
           </svg>
           <motion.circle
-            r={6}
+            r={4}
             style={{ x: hoverX, y: hoverY }}
             className="fill-chart-1"
           />
