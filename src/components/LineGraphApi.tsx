@@ -491,9 +491,17 @@ function LinePlot({
     setIsLeftHalf(x < width / 2);
   };
 
+  const [hoverMin, hoverMax] =
+    data.length > 0
+      ? [
+          Math.max(0, targetXScale(data[0].x)),
+          Math.min(width, targetXScale(data[data.length - 1].x)),
+        ]
+      : [0, width];
+
   const showHover = (e: PointerEvent<SVGRectElement>) => {
     const { left } = e.currentTarget.getBoundingClientRect();
-    showHoverAt(Math.max(0, Math.min(width, e.clientX - left)));
+    showHoverAt(Math.max(hoverMin, Math.min(hoverMax, e.clientX - left)));
   };
 
   const moveHover = (e: KeyboardEvent<SVGRectElement>) => {
