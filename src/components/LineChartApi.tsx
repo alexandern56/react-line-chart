@@ -7,14 +7,34 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "./ui/empty";
 import type { Point, ChartRange } from "../types/chart";
 import { CHART_RANGES, MIN_DATA_POINTS } from "../constants/chart";
 import { getRangeDomain } from "../utils/chart";
 
 import { bisector } from "d3-array";
+import { ChartLine } from "lucide-react";
 import { useId, useState } from "react";
 
 const bisectX = bisector<Point, number>((d) => d.x);
+const NO_DATA: Point[] = [];
+
+const EMPTY_STATES = {
+  empty: {
+    title: "No data",
+    description: "There is no data to display yet.",
+  },
+  notEnough: {
+    title: "Not enough data",
+    description: "There are not enough data points to draw the chart yet.",
+  },
+};
 
 function isRangeAvailable(range: ChartRange, data: Point[]) {
   if (data.length === 0) return false;
@@ -31,6 +51,9 @@ export function LineChartApi({ data }: { data: Point[] }) {
   const range = isRangeAvailable(preferredRange, data) ? preferredRange : "All";
 
   const xDomain = getRangeDomain(range, data);
+  const hasEnoughData = data.length >= MIN_DATA_POINTS;
+  const emptyState =
+    data.length === 0 ? EMPTY_STATES.empty : EMPTY_STATES.notEnough;
 
   return (
     <Card className="pb-0">
@@ -59,8 +82,22 @@ export function LineChartApi({ data }: { data: Point[] }) {
           </fieldset>
         </CardAction>
       </CardHeader>
-      <CardContent className="px-0">
-        <LineGraphApi data={data} xDomain={xDomain}></LineGraphApi>
+      <CardContent className="relative px-0">
+        <LineGraphApi
+          data={hasEnoughData ? data : NO_DATA}
+          xDomain={xDomain}
+        ></LineGraphApi>
+        {!hasEnoughData && (
+          <Empty className="pointer-events-none absolute inset-0 animate-in duration-300 fade-in">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ChartLine />
+              </EmptyMedia>
+              <EmptyTitle>{emptyState.title}</EmptyTitle>
+              <EmptyDescription>{emptyState.description}</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
       </CardContent>
     </Card>
   );
