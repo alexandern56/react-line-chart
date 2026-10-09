@@ -76,14 +76,16 @@ export function LineChartApi({ data }: { data: Point[] | undefined }) {
     <Card className="overflow-visible pb-0">
       <CardHeader>
         <CardTitle>Line Chart - Interactive</CardTitle>
-        <CardDescription>Showing values for the selected range</CardDescription>
-        <CardAction>
-          <fieldset className="inline-flex h-8 items-center rounded-lg bg-muted p-[3px] text-muted-foreground">
+        <CardDescription className="col-start-1">
+          Showing values for the selected range
+        </CardDescription>
+        <CardAction className="col-span-full col-start-1 row-span-1 row-start-3 mt-2 justify-self-stretch @lg/card-header:col-span-1 @lg/card-header:col-start-2 @lg/card-header:row-span-2 @lg/card-header:row-start-1 @lg/card-header:mt-0 @lg/card-header:justify-self-end">
+          <fieldset className="flex h-8 items-center rounded-lg bg-muted p-[3px] text-muted-foreground">
             <legend className="sr-only">Data range</legend>
             {CHART_RANGES.map((r) => (
               <label
                 key={r}
-                className="inline-flex h-full items-center justify-center rounded-md border border-transparent px-2 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm has-focus-visible:border-ring has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 has-disabled:pointer-events-none has-disabled:opacity-50 dark:text-muted-foreground dark:hover:text-foreground dark:has-checked:border-input dark:has-checked:bg-input/30 dark:has-checked:text-foreground"
+                className="inline-flex h-full flex-1 items-center justify-center rounded-md border border-transparent px-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm has-focus-visible:border-ring has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 has-disabled:pointer-events-none has-disabled:opacity-50 @lg/card-header:flex-none @lg/card-header:px-2 dark:text-muted-foreground dark:hover:text-foreground dark:has-checked:border-input dark:has-checked:bg-input/30 dark:has-checked:text-foreground"
               >
                 <input
                   disabled={!isRangeAvailable(r, points)}
