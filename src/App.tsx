@@ -1,62 +1,18 @@
-import { useState } from "react";
-import { LineChart } from "./components/LineChart";
-import { LineChartApi } from "./components/LineChartApi";
-import { LineGraphBasic } from "./components/LineGraphBasic.tsx";
-import { generateData } from "./generateData";
+import { LineChart } from "@/components/line-chart/line-chart";
+import type { Point } from "@/components/line-chart/lib/types";
 
-const DATA = generateData(1000);
+const DAY = 24 * 60 * 60 * 1000;
+const START = Date.UTC(2026, 0, 1);
+
+const DATA: Point[] = Array.from({ length: 365 }, (_, i) => ({
+  x: START + i * DAY,
+  y: 100 + 20 * Math.sin(i / 20) + 8 * Math.sin(i / 3),
+}));
+
 function App() {
-  const [data, setData] = useState(DATA);
-
   return (
-    <main className="flex flex-col gap-5 p-10">
-      <h2>Basic</h2>
-      <div id="wrapper" className="h-50 border">
-        <LineGraphBasic data={DATA}></LineGraphBasic>
-      </div>
-
-      <h2>Normal</h2>
-      <button
-        type="button"
-        className="self-start border px-2"
-        onClick={() =>
-          setData(generateData(300 + Math.floor(Math.random() * 700)))
-        }
-      >
-        New data
-      </button>
-
-      <button
-        type="button"
-        className="self-start border px-2"
-        onClick={() => setData([])}
-      >
-        Empty data
-      </button>
-
-      <button
-        type="button"
-        className="self-start border px-2"
-        onClick={() => setData(generateData(1))}
-      >
-        1 data point
-      </button>
-
-      <button
-        type="button"
-        className="self-start border px-2"
-        onClick={() => document.documentElement.classList.toggle("dark")}
-      >
-        Toggle dark
-      </button>
-      <div className="border">
-        <LineChart data={data}></LineChart>
-      </div>
-
-      <h2>Api</h2>
-      <div className="border">
-        <LineChartApi data={data}></LineChartApi>
-      </div>
+    <main className="mx-auto max-w-5xl p-4 md:p-8">
+      <LineChart data={DATA} />
     </main>
   );
 }
