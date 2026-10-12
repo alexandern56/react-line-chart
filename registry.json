@@ -1,0 +1,128 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "react-line-chart",
+  "homepage": "https://github.com/alexandern56/react-line-chart",
+  "items": [
+    {
+      "name": "line-graph",
+      "type": "registry:component",
+      "title": "Line Graph",
+      "description": "Animated time-series line graph: zoom and morph transitions, hover and keyboard tooltip, adaptive axes.",
+      "dependencies": ["d3-array", "d3-scale", "d3-shape", "d3-time", "motion"],
+      "devDependencies": [
+        "@types/d3-array",
+        "@types/d3-scale",
+        "@types/d3-shape",
+        "@types/d3-time"
+      ],
+      "files": [
+        {
+          "path": "src/components/line-chart/line-graph.tsx",
+          "type": "registry:component",
+          "target": "@components/line-chart/line-graph.tsx"
+        },
+        {
+          "path": "src/components/line-chart/hooks/use-animated-points.ts",
+          "type": "registry:hook",
+          "target": "@components/line-chart/hooks/use-animated-points.ts"
+        },
+        {
+          "path": "src/components/line-chart/hooks/use-axis-labels.ts",
+          "type": "registry:hook",
+          "target": "@components/line-chart/hooks/use-axis-labels.ts"
+        },
+        {
+          "path": "src/components/line-chart/hooks/use-chart-hover.ts",
+          "type": "registry:hook",
+          "target": "@components/line-chart/hooks/use-chart-hover.ts"
+        },
+        {
+          "path": "src/components/line-chart/hooks/use-element-size.ts",
+          "type": "registry:hook",
+          "target": "@components/line-chart/hooks/use-element-size.ts"
+        },
+        {
+          "path": "src/components/line-chart/lib/constants.ts",
+          "type": "registry:lib",
+          "target": "@components/line-chart/lib/constants.ts"
+        },
+        {
+          "path": "src/components/line-chart/lib/curve.ts",
+          "type": "registry:lib",
+          "target": "@components/line-chart/lib/curve.ts"
+        },
+        {
+          "path": "src/components/line-chart/lib/domain.ts",
+          "type": "registry:lib",
+          "target": "@components/line-chart/lib/domain.ts"
+        },
+        {
+          "path": "src/components/line-chart/lib/format.ts",
+          "type": "registry:lib",
+          "target": "@components/line-chart/lib/format.ts"
+        },
+        {
+          "path": "src/components/line-chart/lib/lttb.ts",
+          "type": "registry:lib",
+          "target": "@components/line-chart/lib/lttb.ts"
+        },
+        {
+          "path": "src/components/line-chart/lib/morph.ts",
+          "type": "registry:lib",
+          "target": "@components/line-chart/lib/morph.ts"
+        },
+        {
+          "path": "src/components/line-chart/lib/ticks.ts",
+          "type": "registry:lib",
+          "target": "@components/line-chart/lib/ticks.ts"
+        },
+        {
+          "path": "src/components/line-chart/lib/types.ts",
+          "type": "registry:lib",
+          "target": "@components/line-chart/lib/types.ts"
+        }
+      ]
+    },
+    {
+      "name": "line-chart",
+      "type": "registry:block",
+      "title": "Line Chart",
+      "description": "Interactive line chart card with range switch and loading, empty and not-enough-data states.",
+      "dependencies": ["d3-time", "lucide-react"],
+      "registryDependencies": [
+        "card",
+        "empty",
+        "spinner",
+        "alexandern56/react-line-chart/line-graph"
+      ],
+      "files": [
+        {
+          "path": "src/components/line-chart/line-chart.tsx",
+          "type": "registry:component",
+          "target": "@components/line-chart/line-chart.tsx"
+        },
+        {
+          "path": "src/components/line-chart/range-switch.tsx",
+          "type": "registry:component",
+          "target": "@components/line-chart/range-switch.tsx"
+        },
+        {
+          "path": "src/components/line-chart/chart-status.tsx",
+          "type": "registry:component",
+          "target": "@components/line-chart/chart-status.tsx"
+        },
+        {
+          "path": "src/components/line-chart/hooks/use-line-chart.ts",
+          "type": "registry:hook",
+          "target": "@components/line-chart/hooks/use-line-chart.ts"
+        },
+        {
+          "path": "src/components/line-chart/lib/ranges.ts",
+          "type": "registry:lib",
+          "target": "@components/line-chart/lib/ranges.ts"
+        }
+      ],
+      "docs": "Pass `data` as `{ x: timestamp, y: number }[]` sorted by x, one point per day or coarser. `undefined` shows the loading state."
+    }
+  ]
+}
