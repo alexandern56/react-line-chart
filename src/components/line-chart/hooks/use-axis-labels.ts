@@ -42,13 +42,12 @@ export function useAxisLabels({
     const yLabelsRight =
       Y_LABEL_X +
       Math.max(...yTicks.map((tick) => measureText(formatYTick(tick), font)));
-    const labelWidth = (tick: Date) => measureText(formatXTick(tick), font);
-    const isVisible = (tick: Date) => {
-      const x = xScale(tick);
-      const halfLabel = labelWidth(tick) / 2;
-      return x - halfLabel >= yLabelsRight && x + halfLabel <= width;
-    };
-    return getXTicks(xScale, width, labelWidth, isVisible, dataStep);
+    return getXTicks(
+      xScale,
+      (tick) => measureText(formatXTick(tick), font),
+      [yLabelsRight, width],
+      dataStep,
+    );
   }, [xScale, width, font, yTicks, dataStep, formatYTick, formatXTick]);
 
   return { probeRef, xTicks };

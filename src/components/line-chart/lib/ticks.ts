@@ -1,7 +1,32 @@
 import type { ScaleTime } from "d3-scale";
-import { utcWeek } from "d3-time";
+import {
+  unixDay,
+  utcDay,
+  utcMonth,
+  utcWeek,
+  utcYear,
+  type TimeInterval,
+} from "d3-time";
 
-const X_LABEL_GAP = 24;
+const DAY = 24 * 60 * 60 * 1000;
+
+export const X_LABEL_GAP = 24;
+
+const STEPS: [TimeInterval, number][] = [
+  [utcDay, DAY],
+  [unixDay.every(2)!, 2 * DAY],
+  [unixDay.every(3)!, 3 * DAY],
+  [utcWeek, 7 * DAY],
+  [utcWeek.every(2)!, 14 * DAY],
+  [utcMonth, 31 * DAY],
+  [utcMonth.every(2)!, 62 * DAY],
+  [utcMonth.every(3)!, 92 * DAY],
+  [utcMonth.every(6)!, 184 * DAY],
+  ...[1, 2, 5, 10, 20, 50, 100].map((years): [TimeInterval, number] => [
+    utcYear.every(years)!,
+    years * 366 * DAY,
+  ]),
+];
 
 let measureContext: CanvasRenderingContext2D | null = null;
 
@@ -13,31 +38,40 @@ export function measureText(text: string, font: string) {
 
 export function getXTicks(
   scale: ScaleTime<number, number>,
-  width: number,
   labelWidth: (tick: Date) => number,
-  isVisible: (tick: Date) => boolean,
+  [left, right]: [number, number],
   dataStep: number,
-) {
-  const fits = (ticks: Date[]) => {
-    if (ticks.length < 2) return true;
-    const gap =
-      (scale(ticks[ticks.length - 1]) - scale(ticks[0])) / (ticks.length - 1);
-    return gap >= Math.max(...ticks.map(labelWidth)) + X_LABEL_GAP;
-  };
-
+): Date[] {
   const [start, end] = scale.domain();
-  let lo = 1;
-  const maxTicks = (end.getTime() - start.getTime()) / dataStep;
-  let hi = Math.min(Math.floor(width / X_LABEL_GAP), Math.floor(maxTicks));
-  while (lo < hi) {
-    const mid = Math.ceil((lo + hi) / 2);
-    if (fits(scale.ticks(mid))) lo = mid;
-    else hi = mid - 1;
-  }
-  const ticks = scale.ticks(lo).filter(isVisible);
-  if (ticks.length > 0) return ticks;
-  const biweekly = scale.ticks(utcWeek.every(2)!);
-  return fits(biweekly) && biweekly.length <= maxTicks
-    ? biweekly.filter(isVisible)
+  const maxLabels = (right - left) / X_LABEL_GAP;
+
+  return STEPS.filter(
+    ([, step]) =>
+      step >= dataStep && (end.getTime() - start.getTime()) / step <= maxLabels,
+  )
+    .map(([interval]) =>
+      fitLabels(scale.ticks(interval), scale, labelWidth, left, right),
+    )
+    .reduce((best, ticks) => (ticks.length > best.length ? ticks : best), []);
+}
+
+function fitLabels(
+  ticks: Date[],
+  scale: ScaleTime<number, number>,
+  labelWidth: (tick: Date) => number,
+  left: number,
+  right: number,
+): Date[] {
+  const labels = ticks
+    .map((tick) => {
+      const x = scale(tick);
+      const half = labelWidth(tick) / 2;
+      return { tick, start: x - half, end: x + half };
+    })
+    .filter(({ start, end }) => start >= left && end <= right);
+  return labels.every(
+    (label, i) => i === 0 || label.start - labels[i - 1].end >= X_LABEL_GAP,
+  )
+    ? labels.map(({ tick }) => tick)
     : [];
 }
