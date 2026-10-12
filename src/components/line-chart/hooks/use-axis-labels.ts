@@ -39,13 +39,12 @@ export function useAxisLabels({
 
   const xTicks = useMemo(() => {
     if (font === null) return [];
-    const yLabelsRight =
-      Y_LABEL_X +
-      Math.max(...yTicks.map((tick) => measureText(formatYTick(tick), font)));
+    const yLabelCenter =
+      Y_LABEL_X + measureText(formatYTick(yTicks[0]), font) / 2;
     return getXTicks(
       xScale,
       (tick) => measureText(formatXTick(tick), font),
-      [yLabelsRight, width],
+      [yLabelCenter, width],
       dataStep,
     );
   }, [xScale, width, font, yTicks, dataStep, formatYTick, formatXTick]);
