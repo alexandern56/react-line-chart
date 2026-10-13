@@ -201,11 +201,9 @@ function LinePlot({
 
   const { probeRef, xTicks } = useAxisLabels({
     xScale: targetXScale,
-    yTicks,
     width,
     dataStep,
     formatXTick,
-    formatYTick,
   });
 
   const { points, xMin, xMax } = useAnimatedPoints({
@@ -349,8 +347,9 @@ function LinePlot({
         </motion.g>
       )}
       <rect
+        y={-MARGIN.top}
         width={width}
-        height={height}
+        height={height + MARGIN.top + MARGIN.bottom}
         fill="transparent"
         tabIndex={data.length > 0 ? 0 : undefined}
         role="application"
