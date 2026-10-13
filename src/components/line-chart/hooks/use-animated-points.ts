@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect } from "react";
 import { scaleLinear, scaleUtc } from "d3-scale";
 import { animate, useMotionValue, useTransform } from "motion/react";
 import { CURVE, TRANSITION } from "../lib/constants";
@@ -62,14 +62,14 @@ export function useAnimatedPoints({
   const yMin = useMotionValue(targetYMin);
   const yMax = useMotionValue(targetYMax);
   const progress = useMotionValue(0);
-  const prevDataRef = useRef<Point[]>([]);
+  const committedData = useMotionValue<Point[]>([]);
   const snapshot = useMotionValue<Point[]>([]);
 
   const startMorph = useEffectEvent((nextData: Point[]) => {
     const domain: Domain = [xMin.get(), xMax.get(), yMin.get(), yMax.get()];
     snapshot.set(
       getRenderedPoints(
-        prevDataRef.current,
+        committedData.get(),
         domain,
         snapshot.get(),
         progress.get(),
@@ -78,7 +78,7 @@ export function useAnimatedPoints({
         maxPoints,
       ),
     );
-    prevDataRef.current = nextData;
+    committedData.set(nextData);
 
     xMin.jump(targetXMin);
     xMax.jump(targetXMax);
@@ -118,7 +118,7 @@ export function useAnimatedPoints({
   const points = useTransform(() => {
     const domain: Domain = [xMin.get(), xMax.get(), yMin.get(), yMax.get()];
     return getRenderedPoints(
-      data,
+      committedData.get(),
       domain,
       snapshot.get(),
       progress.get(),
