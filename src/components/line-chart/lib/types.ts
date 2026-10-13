@@ -8,7 +8,7 @@ export interface Formatters {
   formatValue: (value: number) => string;
   /** Tooltip date. Default: day, short month and year in UTC, e.g. "Sep 24, 2026". */
   formatDate: (date: Date) => string;
-  /** Y axis label, also used to measure it. Default: `Intl.NumberFormat`. */
+  /** Y axis label. Default: `Intl.NumberFormat`. */
   formatYTick: (value: number) => string;
   /** X axis label, also used to measure it. Default: day, month or year in UTC, depending on the tick. */
   formatXTick: (date: Date) => string;
