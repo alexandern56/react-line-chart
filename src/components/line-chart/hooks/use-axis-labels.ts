@@ -4,23 +4,17 @@ import { Y_LABEL_X } from "../lib/constants";
 import type { Formatters } from "../lib/types";
 import { getXTicks, measureText } from "../lib/ticks";
 
-interface AxisLabelsOptions extends Pick<
-  Formatters,
-  "formatXTick" | "formatYTick"
-> {
+interface AxisLabelsOptions extends Pick<Formatters, "formatXTick"> {
   xScale: ScaleTime<number, number>;
-  yTicks: number[];
   width: number;
   dataStep: number;
 }
 
 export function useAxisLabels({
   xScale,
-  yTicks,
   width,
   dataStep,
   formatXTick,
-  formatYTick,
 }: AxisLabelsOptions) {
   const probeRef = useRef<SVGTextElement>(null);
   const [font, setFont] = useState<string | null>(null);
@@ -39,15 +33,13 @@ export function useAxisLabels({
 
   const xTicks = useMemo(() => {
     if (font === null) return [];
-    const yLabelCenter =
-      Y_LABEL_X + measureText(formatYTick(yTicks[0]), font) / 2;
     return getXTicks(
       xScale,
       (tick) => measureText(formatXTick(tick), font),
-      [yLabelCenter, width],
+      [Y_LABEL_X, width],
       dataStep,
     );
-  }, [xScale, width, font, yTicks, dataStep, formatYTick, formatXTick]);
+  }, [xScale, width, font, dataStep, formatXTick]);
 
   return { probeRef, xTicks };
 }
