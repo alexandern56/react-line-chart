@@ -296,7 +296,7 @@ function LinePlot({
           d={pathD}
           stroke={`url(#${uid}-glow)`}
           {...curveFade}
-          className="stroke-1.5 fill-none"
+          className="stroke-1 fill-none"
         ></motion.path>
       </svg>
       <FadeGroup
