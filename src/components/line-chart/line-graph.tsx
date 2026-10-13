@@ -80,7 +80,7 @@ export function LineGraph({
       role="figure"
       {...props}
       className={cn(
-        "relative h-68.75 w-full fill-muted-foreground text-xs has-focus-visible:outline-2 has-focus-visible:-outline-offset-2",
+        "relative h-68.75 w-full fill-muted-foreground text-xs select-none has-focus-visible:outline-2 has-focus-visible:-outline-offset-2",
         className,
       )}
     >
