@@ -4,7 +4,7 @@ Animated time-series line chart for React and [shadcn/ui](https://ui.shadcn.com)
 
 **[Live demo ↗](https://react-line-chart-downsampling.vercel.app)**
 
-## Why I built this
+## Why
 
 I once had to build a metrics page made mostly of line charts. None of the libraries I tried let me match the design one to one and give the UX I wanted.
 
